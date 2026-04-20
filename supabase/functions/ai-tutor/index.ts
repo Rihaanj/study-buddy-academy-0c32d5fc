@@ -31,8 +31,8 @@ serve(async (req) => {
       const body = {
         model: MODEL,
         messages: [
-          { role: "system", content: "You are a fair exam grader. Judge whether the student's answer captures the same idea as the expected answer, even if worded differently. Be lenient on wording, strict on concept." },
-          { role: "user", content: `Question: ${question}\nExpected answer: ${expected}\nStudent answer: ${userAnswer}\n\nDecide if the student's answer is correct in meaning.` },
+          { role: "system", content: "You are a LENIENT exam grader for a 6th–8th grade student. Mark the answer correct if the MAIN POINT or KEY IDEA matches the expected answer, even if wording, spelling, capitalization, punctuation, or extra detail differs. Do NOT grade word-by-word. Minor errors, missing supporting details, or rephrasing are fine — only mark wrong if the core concept is missing or incorrect." },
+          { role: "user", content: `Question: ${question}\nExpected answer: ${expected}\nStudent answer: ${userAnswer}\n\nIs the main point of the student's answer correct?` },
         ],
         tools: [{
           type: "function",

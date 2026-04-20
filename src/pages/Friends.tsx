@@ -105,14 +105,25 @@ export default function Friends() {
   const search = async () => {
     if (!user || !query.trim()) { setResults([]); return; }
     setSearching(true);
-    const q = query.trim();
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id,name,email,avatar_url,level")
-      .or(`name.ilike.%${q}%,email.ilike.%${q}%`)
-      .neq("user_id", user.id)
-      .limit(20);
-    setResults((data ?? []) as any);
+    const q = query.trim().replace(/[%,()]/g, ""); // strip chars that break PostgREST `or` filter
+    // Run name + email searches separately so special chars in emails (@, .) don't break the OR filter
+    const [{ data: byName }, { data: byEmail }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("user_id,name,email,avatar_url,level")
+        .ilike("name", `%${q}%`)
+        .neq("user_id", user.id)
+        .limit(20),
+      supabase
+        .from("profiles")
+        .select("user_id,name,email,avatar_url,level")
+        .ilike("email", `%${q}%`)
+        .neq("user_id", user.id)
+        .limit(20),
+    ]);
+    const merged = new Map<string, ProfileLite>();
+    for (const p of [...(byName ?? []), ...(byEmail ?? [])] as any[]) merged.set(p.user_id, p);
+    setResults(Array.from(merged.values()));
     setSearching(false);
   };
 
