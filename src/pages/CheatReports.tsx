@@ -86,6 +86,15 @@ export default function CheatReports() {
     setRows((rs) => rs.map((x) => x.id === r.id ? { ...x, status: "dismissed", reviewed_at: new Date().toISOString() } : x));
   };
 
+  const remove = async (r: Report) => {
+    setWorking(r.id);
+    const { error } = await supabase.from("cheat_reports").delete().eq("id", r.id);
+    setWorking(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Report deleted");
+    setRows((rs) => rs.filter((x) => x.id !== r.id));
+  };
+
   const pending = rows.filter((r) => r.status === "pending");
   const reviewed = rows.filter((r) => r.status !== "pending");
 
