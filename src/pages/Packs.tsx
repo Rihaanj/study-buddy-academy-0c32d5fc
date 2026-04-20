@@ -113,6 +113,9 @@ export default function Packs() {
           .update({ metadata: { ...pack.metadata, opened: true, reward } })
           .eq("id", pack.id);
         setRevealed({ id: pack.id, reward, rarity: spinning.rarity });
+        // Lucky Break — first pack ever opened
+        const { awardBadge } = await import("@/lib/badges");
+        await awardBadge(user.id, "lucky_break");
       } else {
         toast.error(invErr.message);
       }

@@ -241,6 +241,8 @@ export default function Chat() {
     const { data: g, error } = await supabase.from("groups").insert({ name: name.trim(), subject: subject.trim() || null, created_by: user.id }).select().single();
     if (error) { toast.error(error.message); return; }
     await supabase.from("group_members").insert({ group_id: g.id, user_id: user.id });
+    // Joining a group chat (creating one counts) unlocks Squad Member
+    await awardBadge(user.id, "squad_member");
     setOpenNew(false); setName(""); setSubject("");
     setActive(g);
     setChatTab("gc");
@@ -369,6 +371,7 @@ export default function Chat() {
                           <Button size="sm" onClick={async () => {
                             const { error } = await supabase.from("group_members").insert({ group_id: active.id, user_id: f.user_id });
                             if (error) { toast.error(error.message); return; }
+                            await awardBadge(f.user_id, "squad_member");
                             toast.success(`${f.name ?? "Friend"} added to group`);
                             setFriends((arr) => arr.filter((x) => x.user_id !== f.user_id));
                           }}>Add</Button>
