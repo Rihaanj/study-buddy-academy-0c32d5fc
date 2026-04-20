@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide the "Edit with Lovable" badge on published deployments */
+#lovable-badge,
+#lovable-badge-container,
+a[href*="lovable.dev"][class*="badge"],
+a[aria-label*="Lovable"] {
+  display: none !important;
+}
+
 /* 🌌 Study Buddy AI — Galaxy Design System.
    ALL colors MUST be HSL.
 */

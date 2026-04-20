@@ -178,37 +178,50 @@ export default function Packs() {
             No packs yet. Earn XP and level up — every 2 levels grants a pack. 🎁
           </div>
         ) : (
-          <div className="space-y-3">
-            {unopened.map((pack, idx) => (
-              <div key={pack.id} className="relative">
-                {/* Stack shadows behind cards (purely visual) */}
-                {idx < unopened.length - 1 && (
-                  <div className="absolute inset-x-4 -bottom-1.5 h-2 rounded-b-2xl bg-white/10 ring-1 ring-white/10" />
+          (() => {
+            // Pick the next pack to open (most recent unopened) and stack the rest behind it as one tile.
+            const nextPack = unopened[0];
+            const stackCount = unopened.length;
+            return (
+              <div className="relative">
+                {/* Layered "stack" shadows behind the top card — purely visual */}
+                {stackCount > 1 && (
+                  <>
+                    <div className="absolute inset-x-6 -bottom-2 h-3 rounded-b-2xl bg-white/5 ring-1 ring-white/10" />
+                    <div className="absolute inset-x-3 -bottom-1 h-3 rounded-b-2xl bg-white/10 ring-1 ring-white/10" />
+                  </>
                 )}
                 <div className="relative glass-strong p-4 sm:p-5 rounded-2xl ring-1 ring-white/15 overflow-hidden">
                   <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-primary blur-2xl opacity-30" />
                   <div className="relative flex items-center gap-4">
-                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-900/60 grid place-items-center shrink-0 ring-1 ring-white/15">
+                    <div className="relative h-16 w-16 sm:h-20 sm:w-20 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-900/60 grid place-items-center shrink-0 ring-1 ring-white/15">
                       <Package className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground" />
+                      {stackCount > 1 && (
+                        <span className="absolute -top-2 -right-2 min-w-[24px] h-6 px-1.5 rounded-full bg-gradient-primary text-primary-foreground text-xs font-bold grid place-items-center ring-2 ring-background shadow-glow">
+                          {stackCount}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Mystery Pack</div>
+                      <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground">
+                        {stackCount > 1 ? `${stackCount} Mystery Packs` : "Mystery Pack"}
+                      </div>
                       <div className="text-sm text-foreground/80 mt-0.5">
                         Spin to reveal what's inside ✨
                       </div>
                     </div>
                     <Button
-                      onClick={() => open(pack)}
-                      disabled={opening === pack.id}
+                      onClick={() => open(nextPack)}
+                      disabled={opening === nextPack.id}
                       className="bg-gradient-primary text-primary-foreground shrink-0"
                     >
-                      {opening === pack.id ? "Opening..." : "Open"}
+                      {opening === nextPack.id ? "Opening..." : "Open"}
                     </Button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })()
         )}
       </section>
 

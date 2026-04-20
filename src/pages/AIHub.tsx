@@ -244,14 +244,35 @@ function Tests() {
   );
 }
 
+/** Splits the AI practice output into a "questions only" view and a hidden answers section. */
+function splitPractice(raw: string): { questions: string; answers: string } {
+  if (!raw) return { questions: "", answers: "" };
+  const lines = raw.split("\n");
+  const questionLines: string[] = [];
+  const answerLines: string[] = [];
+  for (const line of lines) {
+    // Match common answer markers: "Answer:", "**Answer:**", "Ans:", etc.
+    if (/^\s*(\*\*)?\s*(answer|ans)\s*:/i.test(line)) {
+      answerLines.push(line);
+    } else {
+      questionLines.push(line);
+    }
+  }
+  return {
+    questions: questionLines.join("\n").trim(),
+    answers: answerLines.length ? answerLines.join("\n").trim() : "_(No separate answer key in this output.)_",
+  };
+}
+
 function Practice() {
   const { user } = useAuth();
   const [topic, setTopic] = useState("");
   const [out, setOut] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
   const go = async () => {
     if (!topic.trim()) return;
-    setOut(""); setLoading(true);
+    setOut(""); setShowAnswers(false); setLoading(true);
     await streamAI({ body: { mode: "practice", prompt: `Topic: ${topic}` }, onDelta: (s) => setOut((o) => o + s) });
     setLoading(false);
     if (user) {
@@ -264,6 +285,7 @@ function Practice() {
       toast.success(`Practice generated! +${xp} XP`);
     }
   };
+  const { questions, answers } = splitPractice(out);
   return (
     <div className="space-y-4">
       <Label>Topic</Label>
@@ -271,7 +293,15 @@ function Practice() {
       <Button onClick={go} disabled={loading} className="bg-gradient-primary text-primary-foreground">
         {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : null}Generate practice
       </Button>
-      {(out || loading) && <AIResponse title="Practice Plan" content={out} streaming={loading} />}
+      {(questions || loading) && <AIResponse title="Practice Questions" content={questions} streaming={loading} />}
+      {!loading && out && (
+        <div className="space-y-3">
+          <Button variant="outline" size="sm" onClick={() => setShowAnswers((s) => !s)}>
+            {showAnswers ? "Hide answers" : "Show answers"}
+          </Button>
+          {showAnswers && <AIResponse title="Answer Key" content={answers} />}
+        </div>
+      )}
     </div>
   );
 }
