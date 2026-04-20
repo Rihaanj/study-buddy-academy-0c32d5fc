@@ -178,65 +178,36 @@ export default function Packs() {
             No packs yet. Earn XP and level up — every 2 levels grants a pack. 🎁
           </div>
         ) : (
-          <div className="space-y-5">
-            {(["mythic", "legendary", "epic", "rare", "common"] as Rarity[]).map((rarity) => {
-              const stack = unopened.filter((p) => p.rarity === rarity);
-              if (stack.length === 0) return null;
-              const s = rarityStyles[rarity];
-              const top = stack[0];
-              return (
-                <div key={rarity} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: s.glow, boxShadow: `0 0 8px ${s.glow}` }}
-                    />
-                    <h3 className={`text-sm font-bold uppercase tracking-wider ${s.text}`}>
-                      {s.label} packs
-                    </h3>
-                    <span className="text-xs text-muted-foreground">×{stack.length}</span>
-                  </div>
-                  {/* Stacked visual — cards layered behind the top one */}
-                  <div className={`relative glass-strong p-4 sm:p-5 rounded-2xl ring-1 ${s.ring} overflow-hidden`}>
-                    {/* Stack shadows behind top card */}
-                    {stack.length > 1 && (
-                      <>
-                        <div
-                          className={`absolute inset-x-4 -top-2 h-3 rounded-t-2xl bg-gradient-to-br ${s.bg} opacity-40 ring-1 ${s.ring}`}
-                        />
-                        {stack.length > 2 && (
-                          <div
-                            className={`absolute inset-x-7 -top-4 h-3 rounded-t-2xl bg-gradient-to-br ${s.bg} opacity-25 ring-1 ${s.ring}`}
-                          />
-                        )}
-                      </>
-                    )}
-                    <div className={`absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-to-br ${s.bg} blur-2xl opacity-60`} />
-                    <div className="relative flex items-center gap-4">
-                      <div
-                        className={`h-16 w-16 sm:h-20 sm:w-20 rounded-xl bg-gradient-to-br ${s.bg} grid place-items-center shrink-0`}
-                        style={{ boxShadow: `0 0 20px ${s.glow}` }}
-                      >
-                        <Package className={`h-8 w-8 sm:h-10 sm:w-10 ${s.text}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-xs uppercase tracking-widest font-bold ${s.text}`}>{s.label} Pack</div>
-                        <div className="text-sm text-muted-foreground mt-0.5">
-                          {stack.length === 1 ? "1 pack waiting" : `${stack.length} packs stacked`}
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => open(top)}
-                        disabled={opening === top.id}
-                        className="bg-gradient-primary text-primary-foreground shrink-0"
-                      >
-                        {opening === top.id ? "Opening..." : "Open one"}
-                      </Button>
+          <div className="space-y-3">
+            {unopened.map((pack, idx) => (
+              <div key={pack.id} className="relative">
+                {/* Stack shadows behind cards (purely visual) */}
+                {idx < unopened.length - 1 && (
+                  <div className="absolute inset-x-4 -bottom-1.5 h-2 rounded-b-2xl bg-white/10 ring-1 ring-white/10" />
+                )}
+                <div className="relative glass-strong p-4 sm:p-5 rounded-2xl ring-1 ring-white/15 overflow-hidden">
+                  <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-primary blur-2xl opacity-30" />
+                  <div className="relative flex items-center gap-4">
+                    <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl bg-gradient-to-br from-slate-700/50 to-slate-900/60 grid place-items-center shrink-0 ring-1 ring-white/15">
+                      <Package className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground" />
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Mystery Pack</div>
+                      <div className="text-sm text-foreground/80 mt-0.5">
+                        Spin to reveal what's inside ✨
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => open(pack)}
+                      disabled={opening === pack.id}
+                      className="bg-gradient-primary text-primary-foreground shrink-0"
+                    >
+                      {opening === pack.id ? "Opening..." : "Open"}
+                    </Button>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </section>
