@@ -127,7 +127,10 @@ export default function CheatReports() {
                 {r.context && (
                   <pre className="text-xs bg-white/5 p-3 rounded-lg whitespace-pre-wrap break-words max-h-48 overflow-y-auto">{cleanText(r.context)}</pre>
                 )}
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2 justify-end flex-wrap">
+                  <Button size="sm" variant="ghost" onClick={() => remove(r)} disabled={working === r.id} className="text-destructive hover:text-destructive">
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />Delete
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => dismiss(r)} disabled={working === r.id}>
                     <X className="h-3.5 w-3.5 mr-1" />Dismiss
                   </Button>
@@ -165,6 +168,9 @@ export default function CheatReports() {
                   <div className="text-sm flex-1 min-w-0 truncate">{cleanText(r.user_name) || r.user_email}</div>
                   <div className="text-xs text-muted-foreground truncate hidden sm:block">{r.reason}</div>
                   <div className="text-xs text-muted-foreground shrink-0">{format(new Date(r.created_at), "MMM d")}</div>
+                  <Button size="icon" variant="ghost" onClick={() => remove(r)} disabled={working === r.id} aria-label="Delete report" className="text-destructive hover:text-destructive h-7 w-7 shrink-0">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               ))}
             </section>
