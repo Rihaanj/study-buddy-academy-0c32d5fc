@@ -142,6 +142,9 @@ export default function Friends() {
     if (accept && user && req?.profile) {
       // auto-create a DM group so it shows up in chat immediately
       await getOrCreateDM(user.id, req.profile.user_id, req.profile.name);
+      // Award the social "First Friend" badge
+      const { awardBadge } = await import("@/lib/badges");
+      await awardBadge(user.id, "first_friend");
     }
     toast.success(accept ? "Friend added 🎉" : "Request rejected");
     loadAll();
