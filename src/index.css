@@ -1,0 +1,307 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🌌 Study Buddy AI — Galaxy Design System.
+   ALL colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Space palette */
+    --background: 222 40% 6%;            /* #0B0F1A-ish */
+    --background-deep: 230 50% 4%;
+    --foreground: 210 40% 96%;
+
+    --card: 224 38% 10%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 224 38% 9%;
+    --popover-foreground: 210 40% 96%;
+
+    /* Neon accents */
+    --primary: 220 100% 65%;             /* neon blue */
+    --primary-foreground: 222 40% 6%;
+    --primary-glow: 220 100% 70%;
+
+    --secondary: 270 90% 65%;            /* neon purple */
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 185 100% 55%;              /* cyan */
+    --accent-foreground: 222 40% 6%;
+
+    --muted: 224 24% 16%;
+    --muted-foreground: 220 15% 70%;
+
+    --destructive: 0 85% 62%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 70% 55%;
+    --warning: 35 95% 60%;
+
+    --border: 224 30% 18%;
+    --input: 224 30% 14%;
+    --ring: 220 100% 65%;
+
+    --radius: 1rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(220 100% 65%), hsl(270 90% 65%));
+    --gradient-cosmic: linear-gradient(135deg, hsl(230 80% 25%), hsl(270 80% 35%) 50%, hsl(220 90% 45%));
+    --gradient-nebula: radial-gradient(ellipse at top, hsl(270 80% 30% / 0.45), transparent 60%),
+                       radial-gradient(ellipse at bottom, hsl(220 90% 30% / 0.35), transparent 60%);
+
+    /* Shadows */
+    --shadow-glow: 0 0 40px hsl(220 100% 65% / 0.35);
+    --shadow-glow-purple: 0 0 40px hsl(270 90% 65% / 0.35);
+    --shadow-card: 0 10px 40px -10px hsl(230 80% 5% / 0.6);
+
+    /* Sidebar (unused but kept) */
+    --sidebar-background: 224 38% 8%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 220 100% 65%;
+    --sidebar-primary-foreground: 222 40% 6%;
+    --sidebar-accent: 224 30% 14%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 224 30% 18%;
+    --sidebar-ring: 220 100% 65%;
+  }
+
+  .dark {
+    /* Same palette — app is always dark */
+    --background: 222 40% 6%;
+    --foreground: 210 40% 96%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    background-image: var(--gradient-nebula);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4 { font-family: 'Space Grotesk', 'Inter', sans-serif; letter-spacing: -0.01em; }
+}
+
+@layer components {
+  .glass {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+    box-shadow: var(--shadow-card), inset 0 1px 0 hsl(0 0% 100% / 0.06);
+    transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease;
+  }
+  .glass:hover {
+    border-color: hsl(0 0% 100% / 0.18);
+  }
+  .glass-strong {
+    @apply rounded-2xl border border-white/15 bg-white/[0.06] backdrop-blur-2xl;
+    box-shadow: var(--shadow-card), inset 0 1px 0 hsl(0 0% 100% / 0.08);
+  }
+  .neon-text {
+    text-shadow: 0 0 12px hsl(var(--primary) / 0.6), 0 0 24px hsl(var(--secondary) / 0.4);
+  }
+  .neon-border {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.4), 0 0 24px hsl(var(--primary) / 0.25);
+  }
+  .gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Smooth scroll-friendly horizontal scroller */
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { scrollbar-width: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Starfield */
+.starfield {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background: radial-gradient(ellipse at 20% 10%, hsl(270 80% 25% / 0.4), transparent 50%),
+              radial-gradient(ellipse at 80% 90%, hsl(220 90% 25% / 0.4), transparent 50%),
+              hsl(var(--background));
+}
+.stars, .stars2, .stars3 {
+  position: absolute; inset: -50%; background-repeat: repeat;
+}
+.stars  { background-image: radial-gradient(1px 1px at 25px 5px, #fff, transparent), radial-gradient(1px 1px at 50px 25px, #fff, transparent), radial-gradient(1px 1px at 125px 20px, #fff, transparent), radial-gradient(1.5px 1.5px at 50px 75px, #fff, transparent), radial-gradient(1px 1px at 15px 125px, #fff, transparent); background-size: 200px 200px; opacity: .6; animation: drift 120s linear infinite; }
+.stars2 { background-image: radial-gradient(1px 1px at 75px 125px, #cfe7ff, transparent), radial-gradient(1px 1px at 100px 75px, #cfe7ff, transparent), radial-gradient(1.5px 1.5px at 199px 100px, #cfe7ff, transparent); background-size: 300px 300px; opacity: .4; animation: drift 200s linear infinite; }
+.stars3 { background-image: radial-gradient(2px 2px at 10px 10px, #e2c4ff, transparent), radial-gradient(1.5px 1.5px at 150px 150px, #e2c4ff, transparent); background-size: 400px 400px; opacity: .3; animation: drift 320s linear infinite; }
+@keyframes drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-200px,-200px,0); } }
+
+@keyframes glow-pulse { 0%,100% { box-shadow: 0 0 12px hsl(var(--primary)/0.5);} 50% { box-shadow: 0 0 28px hsl(var(--primary)/0.9);} }
+.glow-pulse { animation: glow-pulse 2.4s ease-in-out infinite; }
+
+@keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-6px);} }
+.float { animation: float 4s ease-in-out infinite; }
+
+/* 🪐 Planets in the background */
+.planet {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(0.5px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.planet-1 {
+  width: 280px; height: 280px;
+  top: -80px; right: -90px;
+  background:
+    radial-gradient(circle at 30% 30%, hsl(35 95% 70% / 0.95), hsl(20 90% 45% / 0.85) 45%, hsl(15 80% 25% / 0.9) 80%),
+    radial-gradient(circle at 70% 70%, hsl(0 0% 0% / 0.4), transparent 60%);
+  box-shadow: 0 0 80px hsl(35 95% 60% / 0.35), inset -20px -30px 60px hsl(0 0% 0% / 0.6);
+  animation: planet-float 18s ease-in-out infinite;
+}
+.planet-2 {
+  width: 180px; height: 180px;
+  bottom: 12%; left: -50px;
+  background:
+    radial-gradient(circle at 35% 35%, hsl(220 100% 75% / 0.95), hsl(220 85% 45% / 0.9) 50%, hsl(230 80% 18% / 0.95) 85%),
+    radial-gradient(circle at 65% 65%, hsl(0 0% 0% / 0.35), transparent 55%);
+  box-shadow: 0 0 70px hsl(220 100% 60% / 0.4), inset -15px -20px 50px hsl(0 0% 0% / 0.55);
+  animation: planet-float 22s ease-in-out infinite reverse;
+}
+.planet-3 {
+  width: 120px; height: 120px;
+  top: 38%; right: 8%;
+  background:
+    radial-gradient(circle at 30% 30%, hsl(270 95% 80% / 0.95), hsl(270 80% 45% / 0.9) 55%, hsl(275 70% 20% / 0.95) 90%);
+  box-shadow: 0 0 60px hsl(270 90% 60% / 0.5), inset -10px -15px 40px hsl(0 0% 0% / 0.5);
+  animation: planet-float 26s ease-in-out infinite;
+}
+.planet-3::before {
+  content: "";
+  position: absolute; inset: -22% -10%;
+  border-radius: 50%;
+  border: 6px solid hsl(270 90% 70% / 0.35);
+  transform: rotate(-22deg) scaleY(0.32);
+  box-shadow: 0 0 18px hsl(270 90% 70% / 0.4);
+}
+.planet-4 {
+  width: 90px; height: 90px;
+  top: 70%; right: 30%;
+  background:
+    radial-gradient(circle at 30% 30%, hsl(160 85% 70% / 0.95), hsl(170 75% 35% / 0.9) 55%, hsl(180 70% 15% / 0.95) 90%);
+  box-shadow: 0 0 50px hsl(165 90% 55% / 0.4), inset -8px -12px 30px hsl(0 0% 0% / 0.5);
+  animation: planet-float 30s ease-in-out infinite reverse;
+  opacity: 0.45;
+}
+.planet-5 {
+  width: 60px; height: 60px;
+  top: 18%; left: 22%;
+  background:
+    radial-gradient(circle at 30% 30%, hsl(340 90% 75% / 0.95), hsl(340 75% 45% / 0.9) 55%, hsl(340 60% 18% / 0.95) 90%);
+  box-shadow: 0 0 40px hsl(340 85% 60% / 0.45), inset -6px -10px 22px hsl(0 0% 0% / 0.5);
+  animation: planet-float 24s ease-in-out infinite;
+  opacity: 0.5;
+}
+@keyframes planet-float {
+  0%,100% { transform: translate3d(0,0,0); }
+  50% { transform: translate3d(0,-18px,0); }
+}
+
+.nebula-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.nebula-1 {
+  width: 500px; height: 500px;
+  top: 10%; left: 15%;
+  background: radial-gradient(circle, hsl(270 95% 55% / 0.6), transparent 70%);
+  animation: planet-float 30s ease-in-out infinite;
+}
+.nebula-2 {
+  width: 600px; height: 600px;
+  bottom: -20%; right: -10%;
+  background: radial-gradient(circle, hsl(195 100% 50% / 0.45), transparent 70%);
+  animation: planet-float 34s ease-in-out infinite reverse;
+}
+.nebula-3 {
+  width: 420px; height: 420px;
+  top: 55%; left: 35%;
+  background: radial-gradient(circle, hsl(330 90% 55% / 0.35), transparent 70%);
+  animation: planet-float 40s ease-in-out infinite;
+  opacity: 0.35;
+}
+
+/* ✨ Shooting stars */
+.shooting-star {
+  position: absolute;
+  width: 120px;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.95), transparent);
+  filter: drop-shadow(0 0 6px hsl(220 100% 80% / 0.7));
+  opacity: 0;
+  pointer-events: none;
+}
+.shooting-1 {
+  top: 15%; left: -10%;
+  transform: rotate(15deg);
+  animation: shoot 9s ease-in infinite;
+  animation-delay: 2s;
+}
+.shooting-2 {
+  top: 60%; left: -10%;
+  transform: rotate(-8deg);
+  animation: shoot 13s ease-in infinite;
+  animation-delay: 6s;
+}
+@keyframes shoot {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(15deg); }
+  6%   { opacity: 1; }
+  20%  { opacity: 1; transform: translate3d(110vw, 30vh, 0) rotate(15deg); }
+  21%, 100% { opacity: 0; }
+}
+
+/* Markdown polish for AI responses */
+.ai-prose { color: hsl(var(--foreground)); line-height: 1.7; }
+.ai-prose > * + * { margin-top: 0.85rem; }
+.ai-prose h1, .ai-prose h2, .ai-prose h3 { font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; letter-spacing: -0.01em; }
+.ai-prose h1 { font-size: 1.5rem; background: var(--gradient-primary); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ai-prose h2 { font-size: 1.2rem; color: hsl(var(--primary-glow)); border-bottom: 1px solid hsl(var(--border)); padding-bottom: 0.35rem; }
+.ai-prose h3 { font-size: 1.05rem; color: hsl(var(--accent)); }
+.ai-prose p { color: hsl(var(--foreground) / 0.92); }
+.ai-prose strong { color: hsl(var(--primary-glow)); font-weight: 600; }
+.ai-prose em { color: hsl(var(--accent)); }
+.ai-prose ul, .ai-prose ol { padding-left: 1.4rem; }
+.ai-prose ul { list-style: none; }
+.ai-prose ul > li { position: relative; padding-left: 0.5rem; }
+.ai-prose ul > li::before {
+  content: "▹"; color: hsl(var(--primary)); position: absolute; left: -1rem; top: 0;
+}
+.ai-prose ol > li { color: hsl(var(--foreground)); }
+.ai-prose ol > li::marker { color: hsl(var(--primary-glow)); font-weight: 700; }
+.ai-prose li + li { margin-top: 0.4rem; }
+.ai-prose code {
+  background: hsl(var(--muted) / 0.7); color: hsl(var(--accent));
+  padding: 0.12rem 0.4rem; border-radius: 0.35rem; font-size: 0.88em;
+  border: 1px solid hsl(var(--border));
+}
+.ai-prose pre {
+  background: hsl(230 50% 4% / 0.8); border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem; padding: 0.9rem 1rem; overflow-x: auto;
+}
+.ai-prose pre code { background: transparent; border: 0; padding: 0; color: hsl(var(--foreground)); }
+.ai-prose blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  padding: 0.4rem 0.9rem; background: hsl(var(--primary) / 0.06);
+  border-radius: 0 0.5rem 0.5rem 0; color: hsl(var(--muted-foreground));
+}
+.ai-prose hr { border: 0; border-top: 1px solid hsl(var(--border)); margin: 1.2rem 0; }
+.ai-prose a { color: hsl(var(--accent)); text-decoration: underline; text-underline-offset: 3px; }
+.ai-prose table { width: 100%; border-collapse: collapse; }
+.ai-prose th, .ai-prose td { border: 1px solid hsl(var(--border)); padding: 0.5rem 0.75rem; text-align: left; }
+.ai-prose th { background: hsl(var(--muted) / 0.5); color: hsl(var(--primary-glow)); }

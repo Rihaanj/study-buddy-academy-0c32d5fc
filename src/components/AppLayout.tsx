@@ -1,0 +1,148 @@
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Home, ListChecks, Timer, MessageCircle, Sparkles, LogOut, Calendar, Package, Zap, Users, Star, User, HelpCircle, Trophy, ShieldAlert } from "lucide-react";
+import logoUrl from "@/assets/logo.png";
+import { Starfield } from "./Starfield";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { FloatingFocus } from "./FloatingFocus";
+import { Button } from "./ui/button";
+import { UserAvatar } from "./UserAvatar";
+import { XpBar } from "./XpBar";
+import { ReviewPrompt } from "./ReviewPrompt";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { markTabVisited } from "@/lib/badges";
+
+const baseTabs = [
+  { to: "/", label: "Home", icon: Home, end: true },
+  { to: "/planner", label: "Planner", icon: ListChecks },
+  { to: "/calendar", label: "Cal", icon: Calendar },
+  { to: "/focus", label: "Focus", icon: Timer },
+  { to: "/chat", label: "Chat", icon: MessageCircle },
+  { to: "/friends", label: "Friends", icon: Users },
+  { to: "/leaderboard", label: "Ranks", icon: Trophy },
+  { to: "/ai", label: "AI", icon: Sparkles },
+  { to: "/packs", label: "Packs", icon: Package },
+  { to: "/buffs", label: "Buffs", icon: Zap },
+  { to: "/profile", label: "Profile", icon: User },
+  { to: "/help", label: "Help", icon: HelpCircle },
+];
+
+export const AppLayout = () => {
+  const { signOut, user } = useAuth();
+  const { profile } = useProfile();
+  const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      setIsAdmin(!!data);
+    })();
+  }, [user?.id]);
+
+  // Track tab visits for Explorer badge
+  useEffect(() => {
+    if (user) markTabVisited(user.id, location.pathname);
+  }, [location.pathname, user?.id]);
+
+  const tabs = isAdmin
+    ? [...baseTabs, { to: "/reviews", label: "Reviews", icon: Star }, { to: "/cheats", label: "Cheats", icon: ShieldAlert }]
+    : baseTabs;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Starfield />
+      {/* Top bar */}
+      <header className="sticky top-0 z-30 glass-strong border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
+        <NavLink to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <img
+            src={logoUrl}
+            alt="Study Bud AI logo"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl shadow-glow ring-1 ring-white/10 object-cover shrink-0"
+            width={36}
+            height={36}
+          />
+          <div className="leading-tight min-w-0">
+            <div className="font-semibold tracking-tight truncate text-sm sm:text-base">Study Bud AI</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">by Rihaan Yeswant Jain</div>
+          </div>
+        </NavLink>
+        <div className="flex items-center gap-2 sm:gap-3">
+          {profile && (
+            <>
+              <div className="hidden lg:flex flex-col items-end gap-0.5 min-w-[160px]">
+                <span className="text-[11px] text-muted-foreground">⚡ {profile.xp} XP · 🔥 {profile.streak}</span>
+                <XpBar xp={profile.xp} compact />
+              </div>
+              <NavLink to="/profile" aria-label="Profile" className="shrink-0">
+                <UserAvatar url={profile.avatar_url} name={profile.name} />
+              </NavLink>
+            </>
+          )}
+          <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out"><LogOut className="h-4 w-4" /></Button>
+        </div>
+      </header>
+
+      {/* Desktop side nav + content */}
+      <div className="flex-1 flex">
+        <nav className="hidden md:flex flex-col gap-1 p-3 w-52 lg:w-56 border-r border-white/10 glass-strong">
+          {tabs.map((t) => (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              end={t.end}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-xl transition ${
+                  isActive ? "bg-gradient-primary text-primary-foreground shadow-glow" : "hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                }`
+              }
+            >
+              <t.icon className="h-4 w-4 shrink-0" />
+              <span className="text-sm font-medium truncate">{t.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 pb-32 md:pb-8 max-w-6xl mx-auto w-full animate-fade-in">
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Floating focus widget */}
+      <FloatingFocus />
+
+      {/* Review prompt modal (auto-triggers on milestones) */}
+      <ReviewPrompt />
+
+      {/* Mobile bottom nav — horizontal scroll for many tabs */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 glass-strong border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
+        <div className="overflow-x-auto scrollbar-none">
+          <div className="flex w-max min-w-full px-1 pt-1">
+            {tabs.map((t) => (
+              <NavLink
+                key={t.to}
+                to={t.to}
+                end={t.end}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] ${
+                    isActive ? "text-primary bg-primary/10" : "text-muted-foreground"
+                  }`
+                }
+              >
+                <t.icon className="h-4 w-4 shrink-0" />
+                <span className="truncate w-full text-center">{t.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </nav>
+    </div>
+  );
+};
