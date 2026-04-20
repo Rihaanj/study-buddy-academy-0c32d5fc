@@ -15,6 +15,17 @@ import { useSearchParams } from "react-router-dom";
 import { EmojiPickerButton } from "@/components/EmojiPickerButton";
 import { StickerPicker } from "@/components/StickerPicker";
 import { encodeSticker, isStickerMessage, decodeSticker } from "@/lib/stickers";
+import { awardBadge } from "@/lib/badges";
+
+/** After sending a message in a non-DM group chat, count user's group messages and award the Collaborator badge at 10. */
+async function checkCollaboratorBadge(userId: string, group: any) {
+  if (!group || group.subject === "__dm__") return;
+  const { count } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if ((count ?? 0) >= 10) await awardBadge(userId, "collaborator");
+}
 
 export default function Chat() {
   const { user } = useAuth();
@@ -142,6 +153,7 @@ export default function Chat() {
     const { error } = await supabase.from("messages").insert({ group_id: active.id, user_id: user.id, text: t });
     if (error) toast.error(error.message);
     notifyDmRecipient(t);
+    checkCollaboratorBadge(user.id, active);
   };
 
   const sendSticker = async (emoji: string) => {
@@ -150,6 +162,7 @@ export default function Chat() {
     const { error } = await supabase.from("messages").insert({ group_id: active.id, user_id: user.id, text: payload });
     if (error) toast.error(error.message);
     notifyDmRecipient(`Sent a sticker ${emoji}`);
+    checkCollaboratorBadge(user.id, active);
   };
 
   const insertEmoji = (emoji: string) => {
@@ -192,6 +205,7 @@ export default function Chat() {
     if (error) { toast.error(error.message); return; }
     const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
     await supabase.from("messages").insert({ group_id: active.id, user_id: user.id, image_url: pub.publicUrl });
+    checkCollaboratorBadge(user.id, active);
   };
 
   const deleteMessage = async (id: string) => {
@@ -227,6 +241,8 @@ export default function Chat() {
     const { data: g, error } = await supabase.from("groups").insert({ name: name.trim(), subject: subject.trim() || null, created_by: user.id }).select().single();
     if (error) { toast.error(error.message); return; }
     await supabase.from("group_members").insert({ group_id: g.id, user_id: user.id });
+    // Joining a group chat (creating one counts) unlocks Squad Member
+    await awardBadge(user.id, "squad_member");
     setOpenNew(false); setName(""); setSubject("");
     setActive(g);
     setChatTab("gc");
@@ -355,6 +371,7 @@ export default function Chat() {
                           <Button size="sm" onClick={async () => {
                             const { error } = await supabase.from("group_members").insert({ group_id: active.id, user_id: f.user_id });
                             if (error) { toast.error(error.message); return; }
+                            await awardBadge(f.user_id, "squad_member");
                             toast.success(`${f.name ?? "Friend"} added to group`);
                             setFriends((arr) => arr.filter((x) => x.user_id !== f.user_id));
                           }}>Add</Button>
