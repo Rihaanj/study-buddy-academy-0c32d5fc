@@ -106,7 +106,7 @@ export default function Login() {
 
           {/* Footer */}
           <p className="text-center text-xs text-muted-foreground mt-6 animate-fade-in" style={{ animationDelay: "300ms" }}>
-            Made with 🌌 by <span className="gradient-text font-semibold">Rihaan Yeswant Jain</span>
+            Made by <span className="gradient-text font-semibold">Rihaan</span>
           </p>
         </div>
       </div>

@@ -71,7 +71,7 @@ export const AppLayout = () => {
           />
           <div className="leading-tight min-w-0">
             <div className="font-semibold tracking-tight truncate text-sm sm:text-base">Study Bud AI</div>
-            <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">by Rihaan Yeswant Jain</div>
+            <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">by Rihaan</div>
           </div>
         </NavLink>
         <div className="flex items-center gap-2 sm:gap-3">

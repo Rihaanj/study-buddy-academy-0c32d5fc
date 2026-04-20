@@ -178,35 +178,61 @@ export default function Packs() {
             No packs yet. Earn XP and level up — every 2 levels grants a pack. 🎁
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-            {unopened.map((p) => {
-              const s = rarityStyles[p.rarity] ?? rarityStyles.common;
+          <div className="space-y-5">
+            {(["mythic", "legendary", "epic", "rare", "common"] as Rarity[]).map((rarity) => {
+              const stack = unopened.filter((p) => p.rarity === rarity);
+              if (stack.length === 0) return null;
+              const s = rarityStyles[rarity];
+              const top = stack[0];
               return (
-                <div key={p.id} className={`glass-strong p-4 sm:p-5 rounded-2xl ring-1 ${s.ring} relative overflow-hidden`}>
-                  <div className={`absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-to-br ${s.bg} blur-2xl opacity-60`} />
-                  <div className="relative">
-                    <div className={`text-[10px] uppercase tracking-widest font-bold ${s.text}`}>{s.label}</div>
-                    <div className="mt-3 h-20 sm:h-24 grid place-items-center">
+                <div key={rarity} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: s.glow, boxShadow: `0 0 8px ${s.glow}` }}
+                    />
+                    <h3 className={`text-sm font-bold uppercase tracking-wider ${s.text}`}>
+                      {s.label} packs
+                    </h3>
+                    <span className="text-xs text-muted-foreground">×{stack.length}</span>
+                  </div>
+                  {/* Stacked visual — cards layered behind the top one */}
+                  <div className={`relative glass-strong p-4 sm:p-5 rounded-2xl ring-1 ${s.ring} overflow-hidden`}>
+                    {/* Stack shadows behind top card */}
+                    {stack.length > 1 && (
+                      <>
+                        <div
+                          className={`absolute inset-x-4 -top-2 h-3 rounded-t-2xl bg-gradient-to-br ${s.bg} opacity-40 ring-1 ${s.ring}`}
+                        />
+                        {stack.length > 2 && (
+                          <div
+                            className={`absolute inset-x-7 -top-4 h-3 rounded-t-2xl bg-gradient-to-br ${s.bg} opacity-25 ring-1 ${s.ring}`}
+                          />
+                        )}
+                      </>
+                    )}
+                    <div className={`absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-to-br ${s.bg} blur-2xl opacity-60`} />
+                    <div className="relative flex items-center gap-4">
                       <div
-                        className={`h-14 w-14 sm:h-16 sm:w-16 rounded-xl bg-gradient-to-br ${s.bg} grid place-items-center shadow-glow`}
+                        className={`h-16 w-16 sm:h-20 sm:w-20 rounded-xl bg-gradient-to-br ${s.bg} grid place-items-center shrink-0`}
                         style={{ boxShadow: `0 0 20px ${s.glow}` }}
                       >
-                        <Package className={`h-7 w-7 sm:h-8 sm:w-8 ${s.text}`} />
+                        <Package className={`h-8 w-8 sm:h-10 sm:w-10 ${s.text}`} />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-xs uppercase tracking-widest font-bold ${s.text}`}>{s.label} Pack</div>
+                        <div className="text-sm text-muted-foreground mt-0.5">
+                          {stack.length === 1 ? "1 pack waiting" : `${stack.length} packs stacked`}
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => open(top)}
+                        disabled={opening === top.id}
+                        className="bg-gradient-primary text-primary-foreground shrink-0"
+                      >
+                        {opening === top.id ? "Opening..." : "Open one"}
+                      </Button>
                     </div>
-                    <div className="text-xs sm:text-sm font-medium mt-2 truncate">
-                      {p.metadata?.source === "streak_milestone" ? "Milestone pack" :
-                       p.metadata?.source === "streak_daily" ? "Streak pack" :
-                       p.metadata?.source === "manual_spin" ? "Spin pack" : "Buff Pack"}
-                    </div>
-                    <Button
-                      onClick={() => open(p)}
-                      disabled={opening === p.id}
-                      size="sm"
-                      className="w-full mt-3 bg-gradient-primary text-primary-foreground"
-                    >
-                      {opening === p.id ? "Opening..." : "Open"}
-                    </Button>
                   </div>
                 </div>
               );

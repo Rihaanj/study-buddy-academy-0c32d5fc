@@ -20,6 +20,7 @@ export default function Reviews() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewers, setReviewers] = useState<Record<string, Reviewer>>({});
+  const [totalUsers, setTotalUsers] = useState<number>(0);
 
   useEffect(() => {
     if (!user) return;
@@ -34,12 +35,18 @@ export default function Reviews() {
       setIsAdmin(admin);
       if (!admin) return;
 
-      const { data: rs } = await supabase
-        .from("reviews" as any)
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [{ data: rs }, { count }] = await Promise.all([
+        supabase
+          .from("reviews" as any)
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("profiles")
+          .select("user_id", { count: "exact", head: true }),
+      ]);
       const list = (rs ?? []) as any as Review[];
       setReviews(list);
+      setTotalUsers(count ?? 0);
 
       const ids = Array.from(new Set(list.map((r) => r.user_id)));
       if (ids.length) {
@@ -75,14 +82,18 @@ export default function Reviews() {
         <h1 className="text-2xl font-bold gradient-text">User Reviews</h1>
         <p className="text-muted-foreground text-sm">Admin view — only you can see this.</p>
       </div>
-      <div className="glass-strong p-5 rounded-xl flex items-center justify-between">
-        <div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="glass-strong p-5 rounded-xl">
           <div className="text-xs text-muted-foreground uppercase tracking-wider">Average rating</div>
           <div className="text-3xl font-bold gradient-text">{avg.toFixed(2)} / 5</div>
         </div>
-        <div className="text-right">
-          <div className="text-xs text-muted-foreground uppercase tracking-wider">Total</div>
+        <div className="glass-strong p-5 rounded-xl">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider">Total reviews</div>
           <div className="text-3xl font-bold">{reviews.length}</div>
+        </div>
+        <div className="glass-strong p-5 rounded-xl">
+          <div className="text-xs text-muted-foreground uppercase tracking-wider">Signed-up users</div>
+          <div className="text-3xl font-bold gradient-text">{totalUsers}</div>
         </div>
       </div>
 
