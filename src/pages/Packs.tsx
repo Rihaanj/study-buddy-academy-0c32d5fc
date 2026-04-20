@@ -149,7 +149,7 @@ export default function Packs() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
           <div className="glass-strong p-8 rounded-2xl max-w-sm w-full text-center animate-scale-in">
             <div className="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-4">
-              {packs.find((p) => p.id === spinning.id && !p.metadata?.opened) ? "Revealing your reward" : "Rolling rarity"}
+              Opening your pack...
             </div>
             <PackWheel targetRarity={spinning.rarity} onDone={finishSpin} />
           </div>
