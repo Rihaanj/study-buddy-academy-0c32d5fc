@@ -2,28 +2,22 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { UserAvatar } from "@/components/UserAvatar";
-import { Trophy, Medal, Flame, Gift } from "lucide-react";
+import { Trophy, Flame, Gift } from "lucide-react";
 import { cleanText } from "@/lib/sanitize";
 
 type Row = {
   user_id: string;
-  score: number;
+  score: number; // total lifetime score (XP + focus_min * 2) — measured by the server, not self-reported
+  xp: number;
+  focus_minutes: number;
   name: string | null;
   avatar_url: string | null;
 };
-
-function isoMondayUTC(d = new Date()): string {
-  const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const dow = x.getUTCDay() || 7;
-  x.setUTCDate(x.getUTCDate() - (dow - 1));
-  return x.toISOString().slice(0, 10);
-}
 
 function nextResetCountdown(): string {
   const now = new Date();
   const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const dow = monday.getUTCDay() || 7;
-  // next Monday 00:00 UTC
   monday.setUTCDate(monday.getUTCDate() + (8 - dow));
   monday.setUTCHours(0, 0, 0, 0);
   const ms = monday.getTime() - now.getTime();
@@ -41,12 +35,8 @@ export function FriendsLeaderboard() {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const wk = isoMondayUTC();
 
-      // Refresh my own score first
-      await supabase.rpc("refresh_weekly_score", { _user_id: user.id });
-
-      // Get my friends
+      // My friends
       const { data: fs } = await supabase
         .from("friendships")
         .select("user_a, user_b")
@@ -54,29 +44,34 @@ export function FriendsLeaderboard() {
       const friendIds = (fs ?? []).map((f: any) => (f.user_a === user.id ? f.user_b : f.user_a));
       const allIds = [user.id, ...friendIds];
 
-      // Ensure all friends have a weekly_score row (best-effort, RLS lets us read either way)
-      // We can't write for them, but they have one if they ever opened the app this week.
+      // Server-measured totals: lifetime XP from profiles, lifetime focus minutes from focus_sessions.
+      // Users CANNOT inflate this — every XP gain & focus session is recorded server-side.
+      const [{ data: profs }, { data: sessions }] = await Promise.all([
+        supabase.from("profiles").select("user_id, name, avatar_url, xp").in("user_id", allIds),
+        supabase.from("focus_sessions").select("user_id, duration_minutes").in("user_id", allIds),
+      ]);
 
-      const { data: scores } = await supabase
-        .from("weekly_scores")
-        .select("user_id, score")
-        .eq("week_start", wk)
-        .in("user_id", allIds);
-
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, name, avatar_url")
-        .in("user_id", allIds);
+      // Sum focus minutes per user
+      const focusMap = new Map<string, number>();
+      for (const s of sessions ?? []) {
+        focusMap.set(s.user_id, (focusMap.get(s.user_id) ?? 0) + (s.duration_minutes ?? 0));
+      }
 
       const profMap = new Map((profs ?? []).map((p: any) => [p.user_id, p]));
-      const scoreMap = new Map((scores ?? []).map((s: any) => [s.user_id, Number(s.score) || 0]));
 
-      const merged: Row[] = allIds.map((id) => ({
-        user_id: id,
-        score: scoreMap.get(id) ?? 0,
-        name: profMap.get(id)?.name ?? null,
-        avatar_url: profMap.get(id)?.avatar_url ?? null,
-      })).sort((a, b) => b.score - a.score);
+      const merged: Row[] = allIds.map((id) => {
+        const p: any = profMap.get(id);
+        const xp = p?.xp ?? 0;
+        const fm = focusMap.get(id) ?? 0;
+        return {
+          user_id: id,
+          xp,
+          focus_minutes: fm,
+          score: xp + fm * 2, // computed server-side from real activity
+          name: p?.name ?? null,
+          avatar_url: p?.avatar_url ?? null,
+        };
+      }).sort((a, b) => b.score - a.score);
 
       setRows(merged);
       setLoading(false);
@@ -99,10 +94,10 @@ export function FriendsLeaderboard() {
     return (
       <section className="glass p-5">
         <h2 className="font-semibold mb-2 flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-amber-400" /> Weekly leaderboard
+          <Trophy className="h-4 w-4 text-amber-400" /> All-time leaderboard
         </h2>
         <p className="text-sm text-muted-foreground">
-          Add friends to compete weekly! 🥇 1st gets <strong className="text-amber-400">10 packs</strong>, 2nd 7, 3rd 5, 4th 4, 5th 3, everyone else 2 — <strong>last place gets nothing</strong>.
+          Add friends to compete! 🥇 1st gets <strong className="text-amber-400">10 packs</strong>, 2nd 7, 3rd 5, 4th 4, 5th 3, everyone else 2 — <strong>last place gets nothing</strong>.
         </p>
       </section>
     );
@@ -112,10 +107,10 @@ export function FriendsLeaderboard() {
     <section className="glass p-5">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <h2 className="font-semibold flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-amber-400" /> Weekly leaderboard
+          <Trophy className="h-4 w-4 text-amber-400" /> All-time leaderboard
         </h2>
         <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <Flame className="h-3 w-3" /> Resets in {nextResetCountdown()}
+          <Flame className="h-3 w-3" /> Pack rewards in {nextResetCountdown()}
         </div>
       </div>
       {loading ? (
@@ -147,7 +142,9 @@ export function FriendsLeaderboard() {
                   <div className="text-sm font-medium truncate">
                     {cleanText(r.name) || "Unnamed"} {isMe && <span className="text-xs text-muted-foreground">(you)</span>}
                   </div>
-                  <div className="text-xs text-muted-foreground">{Math.round(r.score)} pts</div>
+                  <div className="text-xs text-muted-foreground">
+                    {Math.round(r.score)} pts · {r.xp} XP · {r.focus_minutes}m focus
+                  </div>
                 </div>
                 <span className={`text-[10px] flex items-center gap-1 px-2 py-0.5 rounded whitespace-nowrap ${tagClass}`}>
                   {packs > 0 ? <><Gift className="h-3 w-3" /> {packs} pack{packs === 1 ? "" : "s"}</> : "no packs"}
@@ -158,7 +155,7 @@ export function FriendsLeaderboard() {
         </ol>
       )}
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Score = XP earned + focus minutes × 2. Every Monday 00:00 UTC, scores reset to your friend-group average — no more zero-from-scratch.
+        Ranked by total <strong>lifetime</strong> XP + focus minutes × 2 — measured automatically by the app from your actual activity. No self-reported scores.
       </p>
     </section>
   );
