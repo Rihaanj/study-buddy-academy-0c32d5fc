@@ -154,7 +154,7 @@ export default function Help() {
       </div>
 
       <p className="text-center text-xs text-muted-foreground py-4">
-        Made by <span className="gradient-text font-bold">Rihaan Yeswant Jain</span> 🌌
+        Made by <span className="gradient-text font-bold">Rihaan</span>
       </p>
     </div>
   );
