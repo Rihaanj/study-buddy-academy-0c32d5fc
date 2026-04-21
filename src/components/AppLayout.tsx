@@ -12,6 +12,7 @@ import { ReviewPrompt } from "./ReviewPrompt";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { markTabVisited } from "@/lib/badges";
+import { runDueDateNotifier } from "@/lib/notifications";
 
 const baseTabs = [
   { to: "/", label: "Home", icon: Home, end: true },
@@ -51,6 +52,14 @@ export const AppLayout = () => {
   useEffect(() => {
     if (user) markTabVisited(user.id, location.pathname);
   }, [location.pathname, user?.id]);
+
+  // Due-date in-app notifier — runs on mount + every 5 min
+  useEffect(() => {
+    if (!user) return;
+    runDueDateNotifier(user.id);
+    const t = window.setInterval(() => runDueDateNotifier(user.id), 5 * 60_000);
+    return () => window.clearInterval(t);
+  }, [user?.id]);
 
   const tabs = isAdmin
     ? [...baseTabs, { to: "/reviews", label: "Reviews", icon: Star }, { to: "/cheats", label: "Cheats", icon: ShieldAlert }]
