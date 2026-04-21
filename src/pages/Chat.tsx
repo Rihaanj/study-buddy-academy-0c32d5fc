@@ -120,12 +120,12 @@ export default function Chat() {
 
   useEffect(() => { loadLists(); /* eslint-disable-next-line */ }, [user?.id, searchParams]);
 
-  // REALTIME: global listeners for groups / dm_chats membership changes
   useEffect(() => {
     if (!user) return;
     const ch = supabase
       .channel(`chat-lists-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "dm_chats" }, () => loadLists())
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadLists())
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members", filter: `user_id=eq.${user.id}` }, () => loadLists())
       .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, () => loadLists())
       .subscribe();
@@ -133,7 +133,6 @@ export default function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  // REALTIME + INITIAL LOAD for the active chat's messages
   useEffect(() => {
     if (!active) { setMessages([]); return; }
     (async () => {
@@ -150,7 +149,7 @@ export default function Chat() {
     })();
 
     const ch = supabase
-      .channel(`msgs-${active.kind}-${active.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`msgs-${active.kind}-${active.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: active.kind === "dm" ? "dm_messages" : "messages",

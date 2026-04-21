@@ -140,13 +140,15 @@ export default function Friends() {
     const { error } = await supabase.from("friend_requests").update({ status: accept ? "accepted" : "rejected" }).eq("id", id);
     if (error) { toast.error(error.message); return; }
     if (accept && user && req?.profile) {
-      // auto-create a DM group so it shows up in chat immediately
-      await getOrCreateDM(user.id, req.profile.user_id, req.profile.name);
-      // Award the social "First Friend" badge
+      const dmId = await getOrCreateDM(user.id, req.profile.user_id, req.profile.name);
       const { awardBadge } = await import("@/lib/badges");
       await awardBadge(user.id, "first_friend");
+      await loadAll();
+      toast.success("Friend added 🎉");
+      if (dmId) navigate(`/chat?dm=${dmId}`);
+      return;
     }
-    toast.success(accept ? "Friend added 🎉" : "Request rejected");
+    toast.success("Request rejected");
     loadAll();
   };
 
@@ -154,6 +156,7 @@ export default function Friends() {
     if (!user) return;
     const id = await getOrCreateDM(user.id, p.user_id, p.name);
     if (!id) { toast.error("Couldn't open chat"); return; }
+    await loadAll();
     navigate(`/chat?dm=${id}`);
   };
 
