@@ -107,6 +107,13 @@ function Tests() {
 
   const generate = async () => {
     if (!topic.trim()) return;
+    // Block off-topic / cheating test requests
+    const reason = await classifyCheatIntent(`Generate a test about: ${topic}`);
+    if (reason) {
+      toast.error("Tests can only be generated for academic subjects. This attempt has been logged.", { duration: 6000, icon: <ShieldAlert className="h-4 w-4" /> });
+      if (user) await fileCheatReport({ userId: user.id, reason, context: `[test] ${topic}`.slice(0, 1000) });
+      return;
+    }
     setLoading(true); setTest(null); setAnswers({}); setResults(null);
     try {
       const r = await fetch(FN_URL, {
@@ -284,6 +291,13 @@ function Practice() {
 
   const go = async () => {
     if (!topic.trim()) return;
+    // Block off-topic / cheating practice requests
+    const reason = await classifyCheatIntent(`Generate practice about: ${topic}`);
+    if (reason) {
+      toast.error("Practice can only be generated for academic subjects. This attempt has been logged.", { duration: 6000, icon: <ShieldAlert className="h-4 w-4" /> });
+      if (user) await fileCheatReport({ userId: user.id, reason, context: `[practice] ${topic}`.slice(0, 1000) });
+      return;
+    }
     setOut(""); setShowAnswers(false); setAnswerUnlockAt(null); setLoading(true);
     await streamAI({ body: { mode: "practice", prompt: `Topic: ${topic}` }, onDelta: (s) => setOut((o) => o + s) });
     setLoading(false);
