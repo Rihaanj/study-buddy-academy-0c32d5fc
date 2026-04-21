@@ -154,7 +154,7 @@ export default function Friends() {
     if (!user) return;
     const id = await getOrCreateDM(user.id, p.user_id, p.name);
     if (!id) { toast.error("Couldn't open chat"); return; }
-    navigate(`/chat?group=${id}`);
+    navigate(`/chat?dm=${id}`);
   };
 
   const cancel = async (id: string) => {

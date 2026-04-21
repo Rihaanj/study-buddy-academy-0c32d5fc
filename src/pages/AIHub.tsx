@@ -12,7 +12,7 @@ import { BookOpen, FlaskConical, Repeat, ImageIcon, History, Loader2, Sparkles, 
 import { toast } from "sonner";
 import { awardXp, getActiveXpMultiplier, computeTestXpDelta, TEST_BASE_XP, type TestDifficulty } from "@/lib/gamification";
 import { trackAIUsage, awardBadge } from "@/lib/badges";
-import { detectCheatingIntent, fileCheatReport } from "@/lib/cheating";
+import { classifyCheatIntent, fileCheatReport } from "@/lib/cheating";
 import { format } from "date-fns";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
@@ -60,13 +60,13 @@ function Tutor() {
   const [loading, setLoading] = useState(false);
   const ask = async () => {
     if (!q.trim()) return;
-    // Cheating intent check — block, warn the user, and quietly file a report for admin review
-    const cheat = detectCheatingIntent(q);
-    if (cheat.suspected) {
+    // AI-powered cheating intent check (covers obvious + grey-area requests)
+    const reason = await classifyCheatIntent(q);
+    if (reason) {
       setOut("");
       toast.error("I can help you understand the topic, but I won't write your essay or homework for you. This attempt has been logged.", { duration: 6000, icon: <ShieldAlert className="h-4 w-4" /> });
       if (user) {
-        await fileCheatReport({ userId: user.id, reason: cheat.reason, context: q.slice(0, 1000) });
+        await fileCheatReport({ userId: user.id, reason, context: q.slice(0, 1000) });
       }
       return;
     }
@@ -77,6 +77,9 @@ function Tutor() {
       await awardBadge(user.id, "getting_started");
       await trackAIUsage(user.id, "tutor");
       await logHistory(user.id, "tutor", null, q.slice(0, 200), {});
+      // +5 XP for using the tutor (encourages learning, applies XP buffs)
+      const mult = await getActiveXpMultiplier(user.id);
+      await awardXp(user.id, Math.round(5 * mult));
     }
   };
   return (
@@ -270,11 +273,22 @@ function Practice() {
   const [out, setOut] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
+  const [answerUnlockAt, setAnswerUnlockAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!answerUnlockAt) return;
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [answerUnlockAt]);
+
   const go = async () => {
     if (!topic.trim()) return;
-    setOut(""); setShowAnswers(false); setLoading(true);
+    setOut(""); setShowAnswers(false); setAnswerUnlockAt(null); setLoading(true);
     await streamAI({ body: { mode: "practice", prompt: `Topic: ${topic}` }, onDelta: (s) => setOut((o) => o + s) });
     setLoading(false);
+    // Start the 2-minute "try it yourself" timer
+    setAnswerUnlockAt(Date.now() + 2 * 60 * 1000);
     if (user) {
       const mult = await getActiveXpMultiplier(user.id);
       const xp = Math.round(15 * mult);
@@ -286,6 +300,11 @@ function Practice() {
     }
   };
   const { questions, answers } = splitPractice(out);
+  const unlocked = !answerUnlockAt || now >= answerUnlockAt;
+  const remaining = answerUnlockAt ? Math.max(0, Math.ceil((answerUnlockAt - now) / 1000)) : 0;
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+
   return (
     <div className="space-y-4">
       <Label>Topic</Label>
@@ -296,10 +315,22 @@ function Practice() {
       {(questions || loading) && <AIResponse title="Practice Questions" content={questions} streaming={loading} />}
       {!loading && out && (
         <div className="space-y-3">
-          <Button variant="outline" size="sm" onClick={() => setShowAnswers((s) => !s)}>
-            {showAnswers ? "Hide answers" : "Show answers"}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => unlocked && setShowAnswers((s) => !s)}
+            disabled={!unlocked}
+          >
+            {!unlocked
+              ? `Show answers in ${mins}:${String(secs).padStart(2, "0")}`
+              : showAnswers ? "Hide answers" : "Show answers"}
           </Button>
-          {showAnswers && <AIResponse title="Answer Key" content={answers} />}
+          {!unlocked && (
+            <p className="text-xs text-muted-foreground">
+              Spend a couple minutes attempting the questions first — answers unlock in a moment.
+            </p>
+          )}
+          {unlocked && showAnswers && <AIResponse title="Answer Key" content={answers} />}
         </div>
       )}
     </div>
