@@ -137,11 +137,15 @@ export default function Chat() {
   useEffect(() => {
     if (!active) { setMessages([]); return; }
     (async () => {
-      const table = active.kind === "dm" ? "dm_messages" : "messages";
-      const filterCol = active.kind === "dm" ? "chat_id" : "group_id";
-      const { data } = await supabase.from(table).select("*").eq(filterCol, active.id).order("created_at");
-      setMessages((data ?? []) as any);
-      ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
+      if (active.kind === "dm") {
+        const { data } = await supabase.from("dm_messages").select("*").eq("chat_id", active.id).order("created_at");
+        setMessages((data ?? []) as any);
+        ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
+      } else {
+        const { data } = await supabase.from("messages").select("*").eq("group_id", active.id).order("created_at");
+        setMessages((data ?? []) as any);
+        ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
+      }
       setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
     })();
 
