@@ -20,7 +20,9 @@ const RARITY_LABEL: Record<Rarity, string> = {
 };
 
 interface Props {
-  /** Pre-determined rarity (revealed after spin completes). */
+  /** Pre-determined rarity (revealed after spin completes). Kept for API compatibility but
+   * intentionally NOT shown anywhere on the wheel — players were complaining the center
+   * color was leaking the result. */
   targetRarity: Rarity;
   /** Called when the spin animation completes. */
   onDone: () => void;
@@ -29,11 +31,11 @@ interface Props {
 /**
  * Continuous color-flow wheel — no fixed sections. Spins fast then decelerates,
  * lands on a random angle, then calls onDone so the parent can reveal the card.
+ * Center cap is neutral so the rarity is genuinely a surprise.
  */
-export const PackWheel = ({ targetRarity, onDone }: Props) => {
+export const PackWheel = ({ targetRarity: _targetRarity, onDone }: Props) => {
   const [rotation, setRotation] = useState(0);
   const SIZE = 280;
-  const targetColor = RARITY_COLOR[targetRarity];
 
   useEffect(() => {
     // Random landing angle so each spin feels different
@@ -67,16 +69,12 @@ export const PackWheel = ({ targetRarity, onDone }: Props) => {
           filter: "saturate(1.4) blur(0.5px)",
         }}
       >
-        {/* Center cap */}
+        {/* Center cap — NEUTRAL so it doesn't spoil the rarity mid-spin */}
         <div className="absolute inset-0 grid place-items-center pointer-events-none">
           <div
-            className="h-20 w-20 rounded-full grid place-items-center ring-2 ring-background"
-            style={{
-              background: `radial-gradient(circle at 30% 30%, ${targetColor}, hsl(var(--background)))`,
-              boxShadow: `0 0 30px ${targetColor}`,
-            }}
+            className="h-20 w-20 rounded-full grid place-items-center ring-2 ring-background bg-background/90 shadow-xl"
           >
-            <Sparkles className="h-8 w-8 text-primary-foreground drop-shadow-lg" />
+            <Sparkles className="h-8 w-8 text-foreground/80 drop-shadow-lg animate-pulse" />
           </div>
         </div>
       </div>
