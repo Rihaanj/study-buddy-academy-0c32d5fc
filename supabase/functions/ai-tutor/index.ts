@@ -6,16 +6,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// CHEAP MODEL: gemini-2.5-flash-lite is the cheapest, fast Gemini model — ideal for ~1000 chats/$1
+// CHEAPEST + fastest Gemini model
 const MODEL = "google/gemini-2.5-flash-lite";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   tutor:
-    "You are a friendly AI tutor for grade 6–8 students. Explain topics in simple language, with a real-world example, and a clear step-by-step breakdown. Use markdown headings and bullet points. Keep responses concise (under 300 words). NEVER write a student's essay, paragraph, paper, report, story, speech, or homework assignment for them. If asked to do so, politely refuse and instead offer to: (1) explain the topic, (2) outline the structure, (3) give writing tips, or (4) review what the student wrote themselves.",
+    "You are a fast, friendly AI tutor for grade 6-8 students. Keep answers SHORT (under 200 words). Use markdown bullets, 1 example. Never write a student's essay, paragraph, paper, report, story, speech, or homework for them.",
   practice:
-    "You are an adaptive practice generator. Create 3-5 short, varied questions on the requested topic with increasing difficulty. After each question include a hidden answer in this exact form: 'Answer: ...'.",
+    "You are an adaptive practice generator. Create 3-5 short questions on the requested topic with increasing difficulty. For EACH question, provide a step-by-step solution FIRST (2-4 numbered steps) that walks through how to solve it, then a final line 'Answer: ...' with the final answer. Keep the whole response tight.",
   image:
-    "You will analyze an image of study material. Extract the key concepts, summarize as concise notes, then generate 3 quick-check questions with answers.",
+    "You analyze study material images. Extract key concepts as concise bullets, then 3 quick-check questions with answers.",
 };
 
 serve(async (req) => {
@@ -31,8 +31,8 @@ serve(async (req) => {
       const body = {
         model: MODEL,
         messages: [
-          { role: "system", content: "You are a LENIENT exam grader for a 6th–8th grade student. Mark the answer correct if the MAIN POINT or KEY IDEA matches the expected answer, even if wording, spelling, capitalization, punctuation, or extra detail differs. Do NOT grade word-by-word. Minor errors, missing supporting details, or rephrasing are fine — only mark wrong if the core concept is missing or incorrect." },
-          { role: "user", content: `Question: ${question}\nExpected answer: ${expected}\nStudent answer: ${userAnswer}\n\nIs the main point of the student's answer correct?` },
+          { role: "system", content: "You are a LENIENT exam grader for a 6th-8th grade student. Mark correct if the MAIN POINT matches. Minor errors, missing details, or rephrasing are fine. Only mark wrong if the core concept is missing or incorrect." },
+          { role: "user", content: `Question: ${question}\nExpected answer: ${expected}\nStudent answer: ${userAnswer}` },
         ],
         tools: [{
           type: "function",
@@ -42,8 +42,8 @@ serve(async (req) => {
             parameters: {
               type: "object",
               properties: {
-                correct: { type: "boolean", description: "True if the student's answer captures the same idea." },
-                feedback: { type: "string", description: "One-sentence explanation of why." },
+                correct: { type: "boolean" },
+                feedback: { type: "string" },
               },
               required: ["correct", "feedback"],
               additionalProperties: false,
@@ -73,14 +73,13 @@ serve(async (req) => {
       const body = {
         model: MODEL,
         messages: [
-          { role: "system", content: "You are an expert exam author. Produce balanced, accurate questions appropriate to the requested difficulty." },
-          { role: "user", content: `Create a ${difficulty ?? "medium"} difficulty test on: ${topic}. Include ${count ?? 5} mixed questions: MCQs (4 choices), short-answer, and one problem-solving.` },
+          { role: "system", content: "Expert exam author. Produce balanced, accurate questions appropriate to the requested difficulty. Keep wording tight." },
+          { role: "user", content: `Create a ${difficulty ?? "medium"} ${count ?? 5}-question test on: ${topic}. Mix MCQs (4 choices), short-answer, one problem-solving.` },
         ],
         tools: [{
           type: "function",
           function: {
             name: "build_test",
-            description: "Return a structured test.",
             parameters: {
               type: "object",
               properties: {
@@ -116,8 +115,6 @@ serve(async (req) => {
       if (!r.ok) {
         if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limited, try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        const t = await r.text();
-        console.error("AI error", r.status, t);
         return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const data = await r.json();
@@ -126,8 +123,49 @@ serve(async (req) => {
       return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ===== AI-JUDGED CHEATING DETECTION =====
+    // Client calls this before sending the real prompt. Returns {cheat:boolean, reason:string}
+    if (mode === "check-cheat") {
+      const body = {
+        model: MODEL,
+        messages: [
+          { role: "system", content: "Decide if a student's request to an AI is academic cheating. Cheating = asking the AI to WRITE their essay/paragraph/paper/speech/homework, DO their math/problem sets, or complete an assignment for them. NOT cheating = asking for explanations, examples, study help, or feedback on work the student wrote. Be strict but fair." },
+          { role: "user", content: `Student request: """${prompt}"""` },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "classify",
+            parameters: {
+              type: "object",
+              properties: {
+                cheat: { type: "boolean" },
+                reason: { type: "string", description: "Short reason phrase, e.g. 'Asked AI to write an essay'." },
+              },
+              required: ["cheat", "reason"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "classify" } },
+      };
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        // If the classifier fails, default to NOT cheating (fail-open for UX).
+        return new Response(JSON.stringify({ cheat: false, reason: "" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const data = await r.json();
+      const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      const parsed = args ? JSON.parse(args) : { cheat: false, reason: "" };
+      return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ===== STREAMING (tutor / practice / image / generic) =====
-    const systemMsg = SYSTEM_PROMPTS[mode] ?? "You are a helpful study assistant.";
+    const systemMsg = SYSTEM_PROMPTS[mode] ?? "You are a helpful study assistant. Keep replies under 200 words.";
     const userContent: any =
       mode === "image" && imageUrl
         ? [
@@ -149,8 +187,6 @@ serve(async (req) => {
     if (!r.ok) {
       if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limited, try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const t = await r.text();
-      console.error("AI error", r.status, t);
       return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 

@@ -4,8 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Send, Image as ImageIcon, Users, UserPlus2, Search, Trash2, MessageCircle, Camera } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Send, Image as ImageIcon, Users, UserPlus2, Search, Trash2, MessageCircle, Camera, Phone, Video, Info, Bot, Loader2 } from "lucide-react";
 import { GroupAvatar } from "@/components/GroupAvatar";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -16,14 +16,19 @@ import { EmojiPickerButton } from "@/components/EmojiPickerButton";
 import { StickerPicker } from "@/components/StickerPicker";
 import { encodeSticker, isStickerMessage, decodeSticker } from "@/lib/stickers";
 import { awardBadge } from "@/lib/badges";
+import { isMeetMessage, decodeMeetUrl, makeMeetMessage } from "@/lib/meet";
+import { GroupMembersDialog } from "@/components/GroupMembersDialog";
+import { AIResponse } from "@/components/AIResponse";
 
-/** After sending a message in a non-DM group chat, count user's group messages and award the Collaborator badge at 10. */
-async function checkCollaboratorBadge(userId: string, group: any) {
-  if (!group || group.subject === "__dm__") return;
-  const { count } = await supabase
-    .from("messages")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
+type AnyMsg = {
+  id: string; user_id: string; text: string | null; image_url: string | null;
+  created_at: string; deleted?: boolean;
+};
+
+const GROUP_AI_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/group-ai`;
+
+async function checkCollaboratorBadge(userId: string) {
+  const { count } = await supabase.from("messages").select("id", { count: "exact", head: true }).eq("user_id", userId);
   if ((count ?? 0) >= 10) await awardBadge(userId, "collaborator");
 }
 
@@ -31,25 +36,30 @@ export default function Chat() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [groups, setGroups] = useState<any[]>([]);
-  const [active, setActive] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [dmChats, setDmChats] = useState<any[]>([]); // rows from dm_chats with partner profile attached
+  const [active, setActive] = useState<any>(null); // { kind: "group"|"dm", ...group or dmChat }
+  const [messages, setMessages] = useState<AnyMsg[]>([]);
   const [profiles, setProfiles] = useState<Record<string, { name: string | null; avatar_url: string | null }>>({});
-  const [dmPartners, setDmPartners] = useState<Record<string, { name: string | null; avatar_url: string | null }>>({});
   const [text, setText] = useState("");
   const [openNew, setOpenNew] = useState(false);
   const [openInvite, setOpenInvite] = useState(false);
+  const [openMembers, setOpenMembers] = useState(false);
   const [friends, setFriends] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [chatTab, setChatTab] = useState<"dm" | "gc">("dm");
   const [search, setSearch] = useState("");
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiMessages, setAiMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [aiBusy, setAiBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const groupImgRef = useRef<HTMLInputElement>(null);
   const [uploadingGroupImg, setUploadingGroupImg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const ensureProfiles = async (ids: string[]) => {
-    const need = ids.filter((id) => !profiles[id]);
+    const need = ids.filter((id) => !profiles[id] && id);
     if (need.length === 0) return;
     const { data } = await supabase.from("profiles").select("user_id,name,avatar_url").in("user_id", need);
     if (data) {
@@ -61,83 +71,117 @@ export default function Chat() {
     }
   };
 
-  const loadGroups = async () => {
+  const loadLists = async () => {
     if (!user) return;
-    const { data: memberships } = await supabase.from("group_members").select("group_id").eq("user_id", user.id);
+    // Groups I'm in
+    const { data: memberships } = await supabase.from("group_members").select("group_id,role").eq("user_id", user.id);
     const ids = (memberships ?? []).map((m: any) => m.group_id);
-    if (ids.length === 0) { setGroups([]); return; }
-    const { data } = await supabase.from("groups").select("*").in("id", ids).order("created_at", { ascending: false });
-    const groupList = data ?? [];
-    setGroups(groupList);
-
-    const dmGroupIds = groupList.filter((g: any) => g.subject === "__dm__").map((g: any) => g.id);
-    if (dmGroupIds.length) {
-      const { data: members } = await supabase
-        .from("group_members")
-        .select("group_id,user_id")
-        .in("group_id", dmGroupIds)
-        .neq("user_id", user.id);
-      const partnerIds = Array.from(new Set((members ?? []).map((m: any) => m.user_id)));
-      if (partnerIds.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id,name,avatar_url")
-          .in("user_id", partnerIds);
-        const profMap: Record<string, any> = {};
-        (profs ?? []).forEach((p: any) => { profMap[p.user_id] = p; });
-        const next: Record<string, { name: string | null; avatar_url: string | null }> = {};
-        (members ?? []).forEach((m: any) => {
-          const p = profMap[m.user_id];
-          if (p) next[m.group_id] = { name: p.name, avatar_url: p.avatar_url };
-        });
-        setDmPartners(next);
-      }
+    let gs: any[] = [];
+    if (ids.length) {
+      const { data } = await supabase.from("groups").select("*").in("id", ids).order("created_at", { ascending: false });
+      gs = (data ?? []).filter((g: any) => g.subject !== "__dm__");
     }
+    setGroups(gs);
 
-    const wanted = searchParams.get("group");
-    if (wanted) {
-      const found = groupList.find((g: any) => g.id === wanted);
-      if (found) {
-        setActive(found);
-        setChatTab(found.subject === "__dm__" ? "dm" : "gc");
-        return;
-      }
+    // DM chats I'm in
+    const { data: dms } = await supabase
+      .from("dm_chats")
+      .select("id,user_a,user_b,created_at")
+      .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+      .order("created_at", { ascending: false });
+    const partnerIds = (dms ?? []).map((d: any) => d.user_a === user.id ? d.user_b : d.user_a);
+    let profMap: Record<string, any> = {};
+    if (partnerIds.length) {
+      const { data: ps } = await supabase.from("profiles").select("user_id,name,avatar_url,email").in("user_id", partnerIds);
+      (ps ?? []).forEach((p: any) => { profMap[p.user_id] = p; });
     }
-    if (!active && groupList.length) setActive(groupList[0]);
+    const enrichedDms = (dms ?? []).map((d: any) => {
+      const partnerId = d.user_a === user.id ? d.user_b : d.user_a;
+      return { ...d, partnerId, partner: profMap[partnerId] };
+    });
+    setDmChats(enrichedDms);
+
+    // Auto-activate requested chat from URL
+    const wantedGroup = searchParams.get("group");
+    const wantedDm = searchParams.get("dm");
+    if (wantedGroup) {
+      const f = gs.find((g) => g.id === wantedGroup);
+      if (f) { setActive({ kind: "group", ...f }); setChatTab("gc"); return; }
+    }
+    if (wantedDm) {
+      const f = enrichedDms.find((d: any) => d.id === wantedDm);
+      if (f) { setActive({ kind: "dm", ...f }); setChatTab("dm"); return; }
+    }
+    if (!active) {
+      if (enrichedDms.length) { setActive({ kind: "dm", ...enrichedDms[0] }); setChatTab("dm"); }
+      else if (gs.length) { setActive({ kind: "group", ...gs[0] }); setChatTab("gc"); }
+    }
   };
 
-  useEffect(() => { loadGroups(); }, [user, searchParams]);
+  useEffect(() => { loadLists(); /* eslint-disable-next-line */ }, [user?.id, searchParams]);
 
-  const groupDisplayName = (g: any) =>
-    g?.subject === "__dm__" ? (cleanText(dmPartners[g.id]?.name) || cleanText(g.name) || "Direct message") : cleanText(g?.name);
-  const groupDisplaySubject = (g: any) => (g?.subject === "__dm__" ? "Direct message" : g?.subject ? cleanText(g.subject) : "");
-
+  // REALTIME: global listeners for groups / dm_chats membership changes
   useEffect(() => {
-    if (!active) return;
+    if (!user) return;
+    const ch = supabase
+      .channel(`chat-lists-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "dm_chats" }, () => loadLists())
+      .on("postgres_changes", { event: "*", schema: "public", table: "group_members", filter: `user_id=eq.${user.id}` }, () => loadLists())
+      .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, () => loadLists())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // REALTIME + INITIAL LOAD for the active chat's messages
+  useEffect(() => {
+    if (!active) { setMessages([]); return; }
     (async () => {
-      const { data } = await supabase.from("messages").select("*").eq("group_id", active.id).order("created_at");
-      setMessages(data ?? []);
-      ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
+      if (active.kind === "dm") {
+        const { data } = await supabase.from("dm_messages").select("*").eq("chat_id", active.id).order("created_at");
+        setMessages((data ?? []) as any);
+        ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
+      } else {
+        const { data } = await supabase.from("messages").select("*").eq("group_id", active.id).order("created_at");
+        setMessages((data ?? []) as any);
+        ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
+      }
       setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
     })();
-    const channel = supabase
-      .channel(`msgs-${active.id}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `group_id=eq.${active.id}` },
+
+    const ch = supabase
+      .channel(`msgs-${active.kind}-${active.id}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: active.kind === "dm" ? "dm_messages" : "messages",
+          filter: active.kind === "dm" ? `chat_id=eq.${active.id}` : `group_id=eq.${active.id}` },
         (payload) => {
-          setMessages((m) => [...m, payload.new]);
+          setMessages((m) => m.some((x) => x.id === (payload.new as any).id) ? m : [...m, payload.new as any]);
           ensureProfiles([(payload.new as any).user_id]);
           setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
-        })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages", filter: `group_id=eq.${active.id}` },
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: active.kind === "dm" ? "dm_messages" : "messages",
+          filter: active.kind === "dm" ? `chat_id=eq.${active.id}` : `group_id=eq.${active.id}` },
         (payload) => {
-          setMessages((m) => m.filter((x) => x.id !== (payload.old as any).id));
-        })
+          setMessages((m) => m.map((x) => x.id === (payload.new as any).id ? (payload.new as any) : x));
+        }
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [active?.id]);
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.id, active?.kind]);
+
+  const activeLabel = () => {
+    if (!active) return "";
+    if (active.kind === "dm") return cleanText(active.partner?.name) || "Direct message";
+    return cleanText(active.name) || "Group";
+  };
 
   const loadFriendsForInvite = async () => {
-    if (!user) return;
+    if (!user || active?.kind !== "group") return;
     const { data: fs } = await supabase.from("friendships").select("*").or(`user_a.eq.${user.id},user_b.eq.${user.id}`);
     const ids = (fs ?? []).map((f: any) => (f.user_a === user.id ? f.user_b : f.user_a));
     if (ids.length === 0) { setFriends([]); return; }
@@ -147,56 +191,46 @@ export default function Chat() {
     setFriends((profs ?? []).filter((p: any) => !memberIds.has(p.user_id)));
   };
 
+  const insertMessage = async (payload: Partial<AnyMsg>) => {
+    if (!active || !user) return null;
+    if (active.kind === "dm") {
+      const { data, error } = await supabase.from("dm_messages").insert({
+        chat_id: active.id, user_id: user.id, text: payload.text ?? null, image_url: payload.image_url ?? null,
+      }).select().single();
+      if (error) { toast.error(error.message); return null; }
+      // Optimistic: realtime will also fire, but guard in subscription dedupes
+      setMessages((m) => m.some((x) => x.id === data.id) ? m : [...m, data as any]);
+      return data;
+    } else {
+      const { data, error } = await supabase.from("messages").insert({
+        group_id: active.id, user_id: user.id, text: payload.text ?? null, image_url: payload.image_url ?? null,
+      }).select().single();
+      if (error) { toast.error(error.message); return null; }
+      setMessages((m) => m.some((x) => x.id === data.id) ? m : [...m, data as any]);
+      checkCollaboratorBadge(user.id);
+      return data;
+    }
+  };
+
   const send = async () => {
-    if (!user || !active || !text.trim()) return;
-    const t = cleanText(text.trim()); setText("");
-    const { error } = await supabase.from("messages").insert({ group_id: active.id, user_id: user.id, text: t });
-    if (error) toast.error(error.message);
-    notifyDmRecipient(t);
-    checkCollaboratorBadge(user.id, active);
+    if (!text.trim()) return;
+    const t = cleanText(text.trim());
+    setText("");
+    await insertMessage({ text: t });
   };
 
   const sendSticker = async (emoji: string) => {
-    if (!user || !active) return;
-    const payload = encodeSticker(emoji);
-    const { error } = await supabase.from("messages").insert({ group_id: active.id, user_id: user.id, text: payload });
-    if (error) toast.error(error.message);
-    notifyDmRecipient(`Sent a sticker ${emoji}`);
-    checkCollaboratorBadge(user.id, active);
+    await insertMessage({ text: encodeSticker(emoji) });
   };
 
-  const insertEmoji = (emoji: string) => {
-    setText((t) => t + emoji);
+  const sendMeet = async () => {
+    const ok = confirm("Send a Google Meet link to everyone in this chat?");
+    if (!ok) return;
+    await insertMessage({ text: makeMeetMessage() });
+    toast.success("Meet link sent");
   };
 
-  // Fire-and-forget DM email notification (only for DMs, not group chats)
-  const notifyDmRecipient = async (preview: string) => {
-    if (!user || !active || active.subject !== "__dm__") return;
-    const partner = dmPartners[active.id];
-    if (!partner) return;
-    try {
-      // Look up partner user_id from group_members
-      const { data: members } = await supabase
-        .from("group_members")
-        .select("user_id")
-        .eq("group_id", active.id)
-        .neq("user_id", user.id);
-      const recipientId = members?.[0]?.user_id;
-      if (!recipientId) return;
-      await supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "new-dm-message",
-          recipientUserId: recipientId,
-          notificationType: "dm_message",
-          idempotencyKey: `dm-${active.id}-${Date.now()}`,
-          templateData: {
-            senderName: cleanText((profiles[user.id]?.name) || "A friend"),
-            messagePreview: preview.slice(0, 140),
-          },
-        },
-      });
-    } catch { /* silently ignore — email is optional */ }
-  };
+  const insertEmoji = (emoji: string) => setText((t) => t + emoji);
 
   const upload = async (file: File) => {
     if (!user || !active) return;
@@ -204,24 +238,25 @@ export default function Chat() {
     const { error } = await supabase.storage.from("chat-images").upload(path, file);
     if (error) { toast.error(error.message); return; }
     const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
-    await supabase.from("messages").insert({ group_id: active.id, user_id: user.id, image_url: pub.publicUrl });
-    checkCollaboratorBadge(user.id, active);
+    await insertMessage({ image_url: pub.publicUrl });
   };
 
+  /** Soft-delete: sets deleted=true so peers see "this message was deleted". */
   const deleteMessage = async (id: string) => {
-    const { error } = await supabase.from("messages").delete().eq("id", id);
+    const table = active.kind === "dm" ? "dm_messages" : "messages";
+    const { error } = await supabase.from(table).update({ deleted: true, text: null, image_url: null }).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    setMessages((m) => m.filter((x) => x.id !== id));
+    setMessages((m) => m.map((x) => x.id === id ? { ...x, deleted: true, text: null, image_url: null } : x));
   };
 
   const uploadGroupImage = async (file: File) => {
-    if (!user || !active) return;
+    if (!user || !active || active.kind !== "group") return;
     if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
     setUploadingGroupImg(true);
     try {
       const ext = file.name.split(".").pop() || "png";
       const path = `${user.id}/group-${active.id}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("chat-images").upload(path, file, { upsert: true, cacheControl: "3600" });
+      const { error: upErr } = await supabase.storage.from("chat-images").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
       const { error: dbErr } = await supabase.from("groups").update({ image_url: pub.publicUrl }).eq("id", active.id);
@@ -231,60 +266,102 @@ export default function Chat() {
       toast.success("Group picture updated");
     } catch (e: any) {
       toast.error(e.message ?? "Upload failed");
-    } finally {
-      setUploadingGroupImg(false);
-    }
+    } finally { setUploadingGroupImg(false); }
   };
 
   const createGroup = async () => {
     if (!user || !name.trim()) return;
-    const { data: g, error } = await supabase.from("groups").insert({ name: name.trim(), subject: subject.trim() || null, created_by: user.id }).select().single();
+    const { data: g, error } = await supabase.from("groups").insert({
+      name: name.trim(), subject: subject.trim() || null, created_by: user.id,
+    }).select().single();
     if (error) { toast.error(error.message); return; }
-    await supabase.from("group_members").insert({ group_id: g.id, user_id: user.id });
-    // Joining a group chat (creating one counts) unlocks Squad Member
+    // trigger in DB auto-adds creator as host — but upsert just in case
+    await supabase.from("group_members").upsert({ group_id: g.id, user_id: user.id, role: "host" }, { onConflict: "group_id,user_id" as any });
     await awardBadge(user.id, "squad_member");
     setOpenNew(false); setName(""); setSubject("");
-    setActive(g);
+    setActive({ kind: "group", ...g });
     setChatTab("gc");
-    loadGroups();
+    loadLists();
   };
 
-  // Filter groups by tab + search
-  const dms = groups.filter((g) => g.subject === "__dm__");
-  const gcs = groups.filter((g) => g.subject !== "__dm__");
-  const visible = (chatTab === "dm" ? dms : gcs).filter((g) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (groupDisplayName(g) ?? "").toLowerCase().includes(q) || (g.subject ?? "").toLowerCase().includes(q);
-  });
+  // Group AI streaming
+  const askGroupAi = async () => {
+    if (!aiInput.trim()) return;
+    const newMsgs = [...aiMessages, { role: "user" as const, content: aiInput.trim() }];
+    setAiMessages(newMsgs);
+    setAiInput("");
+    setAiBusy(true);
+    // Add placeholder assistant msg
+    setAiMessages((m) => [...m, { role: "assistant", content: "" }]);
+    try {
+      const r = await fetch(GROUP_AI_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ messages: newMsgs }),
+      });
+      if (r.status === 429) { toast.error("Rate limited — try again shortly."); setAiBusy(false); return; }
+      if (r.status === 402) { toast.error("AI credits exhausted."); setAiBusy(false); return; }
+      if (!r.ok || !r.body) { toast.error("AI error"); setAiBusy(false); return; }
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "", done = false, acc = "";
+      while (!done) {
+        const { done: d, value } = await reader.read();
+        if (d) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) !== -1) {
+          let line = buf.slice(0, nl); buf = buf.slice(nl + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6).trim();
+          if (json === "[DONE]") { done = true; break; }
+          try {
+            const p = JSON.parse(json);
+            const c = p.choices?.[0]?.delta?.content;
+            if (c) {
+              acc += c;
+              setAiMessages((mm) => {
+                const copy = [...mm];
+                const last = copy[copy.length - 1];
+                if (last?.role === "assistant") copy[copy.length - 1] = { ...last, content: acc };
+                return copy;
+              });
+            }
+          } catch { buf = line + "\n" + buf; break; }
+        }
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "AI error");
+    } finally { setAiBusy(false); }
+  };
+
+  // Search filtering for sidebar
+  const visibleDms = dmChats.filter((d) => !search.trim() || (d.partner?.name ?? "").toLowerCase().includes(search.toLowerCase()));
+  const visibleGroups = groups.filter((g) => !search.trim() || (g.name ?? "").toLowerCase().includes(search.toLowerCase()) || (g.subject ?? "").toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="grid md:grid-cols-[280px_1fr] gap-4 h-[calc(100vh-180px)]">
       <aside className="glass p-3 flex flex-col gap-2 overflow-hidden">
         <Tabs value={chatTab} onValueChange={(v) => setChatTab(v as "dm" | "gc")} className="w-full">
           <TabsList className="grid grid-cols-2 w-full mb-2">
-            <TabsTrigger value="dm"><MessageCircle className="h-3.5 w-3.5 mr-1" />DMs ({dms.length})</TabsTrigger>
-            <TabsTrigger value="gc"><Users className="h-3.5 w-3.5 mr-1" />Groups ({gcs.length})</TabsTrigger>
+            <TabsTrigger value="dm"><MessageCircle className="h-3.5 w-3.5 mr-1" />DMs ({dmChats.length})</TabsTrigger>
+            <TabsTrigger value="gc"><Users className="h-3.5 w-3.5 mr-1" />Groups ({groups.length})</TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={chatTab === "dm" ? "Search DMs..." : "Search groups..."}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-7 h-8 text-xs"
-            />
+            <Input placeholder={chatTab === "dm" ? "Search DMs..." : "Search groups..."} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-7 h-8 text-xs" />
           </div>
           {chatTab === "gc" && (
             <Dialog open={openNew} onOpenChange={setOpenNew}>
-              <DialogTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8 shrink-0"><Plus className="h-4 w-4"/></Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8 shrink-0"><Plus className="h-4 w-4" /></Button></DialogTrigger>
               <DialogContent className="glass-strong">
                 <DialogHeader><DialogTitle>New study group</DialogTitle></DialogHeader>
-                <Input placeholder="Group name" value={name} onChange={(e)=>setName(e.target.value)}/>
-                <Input placeholder="Subject (optional)" value={subject} onChange={(e)=>setSubject(e.target.value)}/>
+                <Input placeholder="Group name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Input placeholder="Subject (optional)" value={subject} onChange={(e) => setSubject(e.target.value)} />
                 <Button onClick={createGroup} className="bg-gradient-primary text-primary-foreground">Create</Button>
               </DialogContent>
             </Dialog>
@@ -292,116 +369,143 @@ export default function Chat() {
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1 mt-1">
-          {visible.length === 0 && (
-            <p className="text-xs text-muted-foreground p-2">
-              {chatTab === "dm"
-                ? "No DMs yet. Start one from the Friends tab."
-                : "No groups yet. Create one with the + button."}
-            </p>
+          {chatTab === "dm" && visibleDms.length === 0 && (
+            <p className="text-xs text-muted-foreground p-2">No DMs yet. Start one from the Friends tab.</p>
           )}
-          {visible.map((g) => {
-            const isDM = g.subject === "__dm__";
-            const partner = dmPartners[g.id];
-            return (
-              <button key={g.id} onClick={()=>{ setActive(g); setSearchParams({ group: g.id }); }}
-                className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${active?.id===g.id ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
-                {isDM ? <UserAvatar url={partner?.avatar_url} name={partner?.name} className="h-7 w-7" /> : <GroupAvatar url={g.image_url} name={g.name} className="h-7 w-7" />}
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{groupDisplayName(g)}</div>
-                  {groupDisplaySubject(g) && <div className="text-[11px] opacity-70 truncate">{groupDisplaySubject(g)}</div>}
-                </div>
-              </button>
-            );
-          })}
+          {chatTab === "gc" && visibleGroups.length === 0 && (
+            <p className="text-xs text-muted-foreground p-2">No groups yet. Create one with the + button.</p>
+          )}
+          {chatTab === "dm" && visibleDms.map((d) => (
+            <button key={d.id}
+              onClick={() => { setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }); }}
+              className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${active?.kind === "dm" && active.id === d.id ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
+              <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-7 w-7" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium truncate">{cleanText(d.partner?.name) || "Friend"}</div>
+                <div className="text-[11px] opacity-70 truncate">Direct message</div>
+              </div>
+            </button>
+          ))}
+          {chatTab === "gc" && visibleGroups.map((g) => (
+            <button key={g.id}
+              onClick={() => { setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }); }}
+              className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${active?.kind === "group" && active.id === g.id ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
+              <GroupAvatar url={g.image_url} name={g.name} className="h-7 w-7" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium truncate">{cleanText(g.name)}</div>
+                {g.subject && <div className="text-[11px] opacity-70 truncate">{cleanText(g.subject)}</div>}
+              </div>
+            </button>
+          ))}
         </div>
       </aside>
 
       <div className="glass flex flex-col overflow-hidden">
         {!active ? (
           <div className="flex-1 grid place-items-center text-muted-foreground text-sm p-4 text-center">
-            Pick a {chatTab === "dm" ? "DM" : "group"} or create one to start chatting.
+            Pick a chat or create one to start.
           </div>
         ) : (
           <>
+            {/* HEADER */}
             <div className="px-3 sm:px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2">
               <div className="min-w-0 flex items-center gap-2">
-                {active.subject === "__dm__"
-                  ? <UserAvatar url={dmPartners[active.id]?.avatar_url} name={dmPartners[active.id]?.name} className="h-8 w-8" />
-                  : (
-                    <div className="relative group/gpfp">
-                      <GroupAvatar url={active.image_url} name={active.name} className="h-8 w-8" />
-                      {active.created_by === user?.id && (
-                        <>
-                          <input ref={groupImgRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && uploadGroupImage(e.target.files[0])} />
-                          <button
-                            type="button"
-                            onClick={() => groupImgRef.current?.click()}
-                            disabled={uploadingGroupImg}
-                            className="absolute inset-0 grid place-items-center rounded-full bg-black/50 opacity-0 group-hover/gpfp:opacity-100 transition disabled:opacity-100"
-                            aria-label="Change group picture"
-                          >
-                            <Camera className="h-3.5 w-3.5 text-white" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                {active.kind === "dm" ? (
+                  <UserAvatar url={active.partner?.avatar_url} name={active.partner?.name} className="h-8 w-8" />
+                ) : (
+                  <div className="relative group/gpfp">
+                    <GroupAvatar url={active.image_url} name={active.name} className="h-8 w-8" />
+                    <input ref={groupImgRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && uploadGroupImage(e.target.files[0])} />
+                    <button type="button" onClick={() => groupImgRef.current?.click()} disabled={uploadingGroupImg}
+                      className="absolute inset-0 grid place-items-center rounded-full bg-black/50 opacity-0 group-hover/gpfp:opacity-100 transition"
+                      aria-label="Change group picture">
+                      <Camera className="h-3.5 w-3.5 text-white" />
+                    </button>
+                  </div>
+                )}
                 <div className="min-w-0">
-                  <div className="font-semibold truncate text-sm sm:text-base">{groupDisplayName(active)}</div>
-                  {groupDisplaySubject(active) && <div className="text-xs text-muted-foreground truncate">{groupDisplaySubject(active)}</div>}
+                  <div className="font-semibold truncate text-sm sm:text-base">{activeLabel()}</div>
+                  {active.kind === "group" && active.subject && <div className="text-xs text-muted-foreground truncate">{cleanText(active.subject)}</div>}
                 </div>
               </div>
-              {active.subject !== "__dm__" && <Dialog open={openInvite} onOpenChange={(o) => { setOpenInvite(o); if (o) loadFriendsForInvite(); }}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline"><UserPlus2 className="h-3.5 w-3.5 mr-1" />Invite</Button>
-                </DialogTrigger>
-                <DialogContent className="glass-strong">
-                  <DialogHeader><DialogTitle>Invite a friend</DialogTitle></DialogHeader>
-                  {friends.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No friends to invite. Add some on the Friends tab first.</p>
-                  ) : (
-                    <ul className="space-y-2 max-h-80 overflow-y-auto">
-                      {friends.map((f) => (
-                        <li key={f.user_id} className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
-                          <UserAvatar url={f.avatar_url} name={f.name} />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm truncate">{cleanText(f.name) || "Unnamed"}</div>
-                            <div className="text-xs text-muted-foreground truncate">{f.email}</div>
-                          </div>
-                          <Button size="sm" onClick={async () => {
-                            const { error } = await supabase.from("group_members").insert({ group_id: active.id, user_id: f.user_id });
-                            if (error) { toast.error(error.message); return; }
-                            await awardBadge(f.user_id, "squad_member");
-                            toast.success(`${f.name ?? "Friend"} added to group`);
-                            setFriends((arr) => arr.filter((x) => x.user_id !== f.user_id));
-                          }}>Add</Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </DialogContent>
-              </Dialog>}
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={sendMeet} aria-label="Start Google Meet" title="Start Google Meet">
+                  <Video className="h-4 w-4" />
+                </Button>
+                {active.kind === "group" && (
+                  <>
+                    <Button size="sm" variant="ghost" onClick={() => setAiOpen(true)} aria-label="Group AI" title="Group AI">
+                      <Bot className="h-4 w-4" />
+                    </Button>
+                    <Dialog open={openInvite} onOpenChange={(o) => { setOpenInvite(o); if (o) loadFriendsForInvite(); }}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline"><UserPlus2 className="h-3.5 w-3.5 mr-1" />Invite</Button>
+                      </DialogTrigger>
+                      <DialogContent className="glass-strong">
+                        <DialogHeader><DialogTitle>Invite a friend</DialogTitle></DialogHeader>
+                        {friends.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No friends to invite. Add some on the Friends tab first.</p>
+                        ) : (
+                          <ul className="space-y-2 max-h-80 overflow-y-auto">
+                            {friends.map((f) => (
+                              <li key={f.user_id} className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
+                                <UserAvatar url={f.avatar_url} name={f.name} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm truncate">{cleanText(f.name) || "Unnamed"}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{f.email}</div>
+                                </div>
+                                <Button size="sm" onClick={async () => {
+                                  const { error } = await supabase.from("group_members").insert({ group_id: active.id, user_id: f.user_id, role: "member" });
+                                  if (error) { toast.error(error.message); return; }
+                                  toast.success(`${f.name ?? "Friend"} added`);
+                                  setFriends((arr) => arr.filter((x) => x.user_id !== f.user_id));
+                                }}>Add</Button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                    <Button size="sm" variant="ghost" onClick={() => setOpenMembers(true)} title="Members">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* MESSAGES */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
               {messages.map((m) => {
                 const mine = m.user_id === user?.id;
                 const sender = profiles[m.user_id];
+                const deleted = !!m.deleted;
+                const meetUrl = m.text && isMeetMessage(m.text) ? decodeMeetUrl(m.text) : null;
                 return (
                   <div key={m.id} className={`flex gap-2 group ${mine ? "flex-row-reverse" : ""}`}>
                     <UserAvatar url={sender?.avatar_url} name={sender?.name} className="h-7 w-7 mt-1" />
                     <div className={`max-w-[75%] ${mine ? "items-end" : "items-start"} flex flex-col`}>
                       {!mine && <div className="text-[10px] text-muted-foreground px-2 mb-0.5">{cleanText(sender?.name) || "..."}</div>}
                       <div className="flex items-center gap-1">
-                        {mine && (
-                          <button
-                            onClick={() => deleteMessage(m.id)}
+                        {mine && !deleted && (
+                          <button onClick={() => deleteMessage(m.id)}
                             className="opacity-0 group-hover:opacity-100 transition p-1 rounded-md hover:bg-destructive/20 text-destructive"
-                            aria-label="Delete message"
-                          >
+                            aria-label="Delete message">
                             <Trash2 className="h-3 w-3" />
                           </button>
                         )}
-                        {m.text && isStickerMessage(m.text) ? (
+                        {deleted ? (
+                          <div className="p-3 rounded-2xl bg-muted/30 italic text-xs text-muted-foreground">This message was deleted</div>
+                        ) : meetUrl ? (
+                          <a href={meetUrl} target="_blank" rel="noopener noreferrer"
+                            className={`p-3 rounded-2xl flex items-center gap-2 ${mine ? "bg-gradient-primary text-primary-foreground" : "bg-white/5"} hover:brightness-110 transition`}>
+                            <Video className="h-4 w-4" />
+                            <div>
+                              <div className="text-sm font-semibold">Join Google Meet</div>
+                              <div className="text-[10px] opacity-80">Tap to open</div>
+                            </div>
+                          </a>
+                        ) : m.text && isStickerMessage(m.text) ? (
                           <div className="text-6xl px-2 py-1 select-none" aria-label="sticker">{decodeSticker(m.text)}</div>
                         ) : (
                           <div className={`p-3 rounded-2xl ${mine ? "bg-gradient-primary text-primary-foreground" : "bg-white/5"}`}>
@@ -416,17 +520,51 @@ export default function Chat() {
                 );
               })}
             </div>
+
+            {/* COMPOSER */}
             <div className="border-t border-white/10 p-2 sm:p-3 flex gap-1 sm:gap-2 items-center">
-              <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e)=>e.target.files?.[0] && upload(e.target.files[0])}/>
-              <Button variant="ghost" size="icon" onClick={()=>fileRef.current?.click()} aria-label="Send image"><ImageIcon className="h-4 w-4"/></Button>
+              <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+              <Button variant="ghost" size="icon" onClick={() => fileRef.current?.click()} aria-label="Send image"><ImageIcon className="h-4 w-4" /></Button>
               <EmojiPickerButton onPick={insertEmoji} />
               <StickerPicker onPick={sendSticker} />
-              <Input value={text} onChange={(e)=>setText(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&send()} placeholder="Message..." className="flex-1"/>
-              <Button onClick={send} className="bg-gradient-primary text-primary-foreground" aria-label="Send"><Send className="h-4 w-4"/></Button>
+              <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Message..." className="flex-1" />
+              <Button onClick={send} className="bg-gradient-primary text-primary-foreground" aria-label="Send"><Send className="h-4 w-4" /></Button>
             </div>
           </>
         )}
       </div>
+
+      {/* Group members dialog */}
+      <GroupMembersDialog
+        open={openMembers}
+        onOpenChange={setOpenMembers}
+        group={active?.kind === "group" ? active : null}
+        onGroupDeleted={() => { setActive(null); loadLists(); }}
+      />
+
+      {/* Group AI panel */}
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent className="glass-strong max-w-lg">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Bot className="h-4 w-4" /> Group AI</DialogTitle></DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {aiMessages.length === 0 && (
+              <p className="text-xs text-muted-foreground">Ask the group's AI anything academic — it won't write homework for you.</p>
+            )}
+            {aiMessages.map((m, i) => (
+              <div key={i} className={`p-3 rounded-lg text-sm ${m.role === "user" ? "bg-primary/20" : "bg-white/5"}`}>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{m.role}</div>
+                {m.role === "assistant" ? <AIResponse title="" content={m.content} streaming={aiBusy && i === aiMessages.length - 1} /> : <div className="whitespace-pre-wrap">{m.content}</div>}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2 border-t border-white/10">
+            <Input value={aiInput} onChange={(e) => setAiInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && askGroupAi()} placeholder="Ask the group AI..." disabled={aiBusy} />
+            <Button onClick={askGroupAi} disabled={aiBusy || !aiInput.trim()} className="bg-gradient-primary text-primary-foreground">
+              {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ask"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

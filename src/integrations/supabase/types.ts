@@ -215,6 +215,65 @@ export type Database = {
         }
         Relationships: []
       }
+      dm_chats: {
+        Row: {
+          created_at: string
+          id: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
+      dm_messages: {
+        Row: {
+          chat_id: string
+          created_at: string
+          deleted: boolean
+          id: string
+          image_url: string | null
+          text: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          deleted?: boolean
+          id?: string
+          image_url?: string | null
+          text?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          deleted?: boolean
+          id?: string
+          image_url?: string | null
+          text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "dm_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
@@ -334,18 +393,21 @@ export type Database = {
           group_id: string
           id: string
           joined_at: string
+          role: string
           user_id: string
         }
         Insert: {
           group_id: string
           id?: string
           joined_at?: string
+          role?: string
           user_id: string
         }
         Update: {
           group_id?: string
           id?: string
           joined_at?: string
+          role?: string
           user_id?: string
         }
         Relationships: [
@@ -418,6 +480,7 @@ export type Database = {
       messages: {
         Row: {
           created_at: string
+          deleted: boolean
           group_id: string
           id: string
           image_url: string | null
@@ -426,6 +489,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted?: boolean
           group_id: string
           id?: string
           image_url?: string | null
@@ -434,6 +498,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted?: boolean
           group_id?: string
           id?: string
           image_url?: string | null
@@ -468,6 +533,9 @@ export type Database = {
           updated_at: string
           user_id: string
           visited_tabs: string[]
+          weather_city: string | null
+          weather_lat: number | null
+          weather_lon: number | null
           xp: number
         }
         Insert: {
@@ -487,6 +555,9 @@ export type Database = {
           updated_at?: string
           user_id: string
           visited_tabs?: string[]
+          weather_city?: string | null
+          weather_lat?: number | null
+          weather_lon?: number | null
           xp?: number
         }
         Update: {
@@ -506,6 +577,9 @@ export type Database = {
           updated_at?: string
           user_id?: string
           visited_tabs?: string[]
+          weather_city?: string | null
+          weather_lat?: number | null
+          weather_lon?: number | null
           xp?: number
         }
         Relationships: []
@@ -717,6 +791,14 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_dm_participant: {
+        Args: { _chat_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_host: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean

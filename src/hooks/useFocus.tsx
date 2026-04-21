@@ -9,48 +9,50 @@ type FocusCtx = {
   running: boolean;
   remaining: number; // seconds
   duration: number; // seconds
-  integrity: number;
   start: (minutes: number) => void;
   stop: (completed?: boolean) => Promise<void>;
 };
 
 const Ctx = createContext<FocusCtx | undefined>(undefined);
 
+/**
+ * Focus provider — timer only, NO integrity tracking.
+ * Users can switch tabs freely (they need to for studying).
+ * XP = minutes × 2, applied at session end.
+ */
 export const FocusProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [duration, setDuration] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [running, setRunning] = useState(false);
-  const [integrity, setIntegrity] = useState(100);
   const intervalRef = useRef<number | null>(null);
-  const blurCountRef = useRef(0);
 
   const stop = useCallback(async (completed = false) => {
     setRunning(false);
     if (intervalRef.current) { window.clearInterval(intervalRef.current); intervalRef.current = null; }
     const elapsedSec = duration - remaining;
     const minutes = Math.max(1, Math.round(elapsedSec / 60));
-    if (!user) { setDuration(0); setRemaining(0); setIntegrity(100); blurCountRef.current = 0; return; }
+    if (!user) { setDuration(0); setRemaining(0); return; }
     if (completed || elapsedSec >= 60) {
       const baseXp = minutes * 2;
-      const integrityBonus = integrity >= 90 ? 0.5 : 0;
       const buffMult = await getActiveXpMultiplier(user.id);
-      const xp = Math.round(baseXp * (1 + integrityBonus) * buffMult);
+      const xp = Math.round(baseXp * buffMult);
+      // integrity_score column still exists in DB — just always store 100
       await supabase.from("focus_sessions").insert({
-        user_id: user.id, duration_minutes: minutes, integrity_score: integrity, xp_earned: xp,
+        user_id: user.id, duration_minutes: minutes, integrity_score: 100, xp_earned: xp,
       });
       const { data: p } = await supabase.from("profiles").select("focus_streak").eq("user_id", user.id).maybeSingle();
       await supabase.from("profiles").update({ focus_streak: (p?.focus_streak ?? 0) + 1 }).eq("user_id", user.id);
       await awardXp(user.id, xp);
-      await checkFocusBadges(user.id, minutes, integrity);
-      toast.success(`+${xp} XP earned 🚀`, { description: `Focus integrity ${integrity}%` });
+      await checkFocusBadges(user.id, minutes, 100);
+      toast.success(`+${xp} XP earned 🚀`, { description: `${minutes}m focus session` });
     }
-    setDuration(0); setRemaining(0); setIntegrity(100); blurCountRef.current = 0;
-  }, [duration, remaining, integrity, user]);
+    setDuration(0); setRemaining(0);
+  }, [duration, remaining, user]);
 
   const start = useCallback((minutes: number) => {
     const sec = minutes * 60;
-    setDuration(sec); setRemaining(sec); setIntegrity(100); blurCountRef.current = 0; setRunning(true);
+    setDuration(sec); setRemaining(sec); setRunning(true);
     if (intervalRef.current) window.clearInterval(intervalRef.current);
     intervalRef.current = window.setInterval(() => {
       setRemaining((r) => {
@@ -60,28 +62,8 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
     }, 1000);
   }, [stop]);
 
-  // If hidden < 60s = real tab switch (penalize). If >= 60s = phone lock (no penalty).
-  const hiddenAtRef = useRef<number | null>(null);
-  useEffect(() => {
-    const onVis = () => {
-      if (!running) return;
-      if (document.hidden) {
-        hiddenAtRef.current = Date.now();
-      } else if (hiddenAtRef.current) {
-        const awayMs = Date.now() - hiddenAtRef.current;
-        hiddenAtRef.current = null;
-        if (awayMs < 60_000) {
-          blurCountRef.current += 1;
-          setIntegrity((i) => Math.max(0, i - 15));
-        }
-      }
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [running]);
-
   return (
-    <Ctx.Provider value={{ running, remaining, duration, integrity, start, stop }}>
+    <Ctx.Provider value={{ running, remaining, duration, start, stop }}>
       {children}
     </Ctx.Provider>
   );
