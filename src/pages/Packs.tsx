@@ -8,6 +8,7 @@ import { BUFF_POOL, type BuffDef } from "@/lib/buffs";
 import { PackWheel } from "@/components/PackWheel";
 import { rollRarity, grantStreakPacks, type Rarity } from "@/lib/streakPacks";
 import { useProfile } from "@/hooks/useProfile";
+import { securePick } from "@/lib/random";
 
 type Pack = {
   id: string;
@@ -99,7 +100,7 @@ export default function Packs() {
     // If wheel was for opening an existing pack, grant a buff from the pool
     if (pack && !pack.metadata?.opened) {
       const pool = BUFF_POOL[spinning.rarity] ?? BUFF_POOL.common;
-      const reward = pool[Math.floor(Math.random() * pool.length)];
+      const reward = securePick(pool);
       const { error: invErr } = await supabase.from("inventory").insert({
         user_id: user.id,
         item_type: "buff",
@@ -136,7 +137,7 @@ export default function Packs() {
       <div>
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2"><Package className="h-6 w-6"/> Buff Packs</h1>
         <p className="text-muted-foreground text-sm">
-          Earn 1 pack every 2 levels · 10th pack is guaranteed Epic+ · 5+ day streak = 1 free pack/day · every 25-day milestone = 3 packs ✨
+          Earn 1 pack every level · 10th pack is guaranteed Epic+ · 5+ day streak = 1 free pack/day · every 25-day milestone = 3 packs ✨
         </p>
         <div className="mt-3 glass p-3 rounded-xl flex items-center gap-3 text-sm">
           <Gift className="h-4 w-4 text-warning" />
@@ -178,7 +179,7 @@ export default function Packs() {
         <h2 className="font-semibold mb-3">Unopened ({unopened.length})</h2>
         {unopened.length === 0 ? (
           <div className="glass p-8 text-center text-muted-foreground">
-            No packs yet. Earn XP and level up — every 2 levels grants a pack. 🎁
+            No packs yet. Earn XP and level up — every level grants a pack. 🎁
           </div>
         ) : (
           (() => {

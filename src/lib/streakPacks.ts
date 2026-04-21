@@ -1,10 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
+import { secureRandom } from "./random";
 
 export type Rarity = "common" | "rare" | "epic" | "legendary" | "mythic";
 
-/** Weighted random rarity, well-distributed (no 9-common-in-a-row). */
+/** Weighted random rarity using crypto-secure randomness for true fairness. */
 export function rollRarity(): Rarity {
-  const r = Math.random();
+  const r = secureRandom();
   if (r < 0.02) return "mythic";
   if (r < 0.07) return "legendary";
   if (r < 0.20) return "epic";
