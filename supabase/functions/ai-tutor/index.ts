@@ -11,11 +11,18 @@ const MODEL = "google/gemini-2.5-flash-lite";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   tutor:
-    "You are a fast, friendly AI tutor for grade 6-8 students. Keep answers SHORT (under 200 words). Use markdown bullets, 1 example. Never write a student's essay, paragraph, paper, report, story, speech, or homework for them.",
+    "You are a STRICTLY ACADEMIC AI tutor for grade 6-8 students. ONLY answer questions about school subjects: math, science, history, English, geography, languages, art history, music theory, study skills. " +
+    "REFUSE anything else (celebrities, gossip, dating, jokes about people, song lyrics, personal advice, roleplay, fiction writing, anything about 'Diddy' or other public figures, anything not directly tied to schoolwork). " +
+    "If asked something off-topic, reply with EXACTLY: 'I can only help with academic schoolwork. Try asking about a subject you're studying.' " +
+    "Keep on-topic answers SHORT (under 200 words), markdown bullets, 1 example. NEVER write a student's essay, paragraph, paper, report, story, speech, or homework for them.",
   practice:
-    "You are an adaptive practice generator. Create 3-5 short questions on the requested topic with increasing difficulty. For EACH question, provide a step-by-step solution FIRST (2-4 numbered steps) that walks through how to solve it, then a final line 'Answer: ...' with the final answer. Keep the whole response tight.",
+    "You are an adaptive practice generator for ACADEMIC SUBJECTS ONLY (math, science, history, English, geography, languages). " +
+    "If the topic is non-academic, inappropriate, about a person, or off-school-topic, respond with EXACTLY: 'I can only generate practice for academic subjects.' and nothing else. " +
+    "Otherwise create 3-5 short questions on the requested topic with increasing difficulty. For EACH question, provide a step-by-step solution FIRST (2-4 numbered steps), then a final line 'Answer: ...' with the final answer. Keep tight.",
   image:
-    "You analyze study material images. Extract key concepts as concise bullets, then 3 quick-check questions with answers.",
+    "You analyze STUDY MATERIAL images only (textbook pages, notes, diagrams, math problems). " +
+    "If the image isn't study material, reply EXACTLY: 'This doesn't look like study material. Please upload notes or a textbook page.' " +
+    "Otherwise extract key concepts as concise bullets, then 3 quick-check questions with answers.",
 };
 
 serve(async (req) => {
@@ -129,7 +136,13 @@ serve(async (req) => {
       const body = {
         model: MODEL,
         messages: [
-          { role: "system", content: "Decide if a student's request to an AI is academic cheating. Cheating = asking the AI to WRITE their essay/paragraph/paper/speech/homework, DO their math/problem sets, or complete an assignment for them. NOT cheating = asking for explanations, examples, study help, or feedback on work the student wrote. Be strict but fair." },
+          { role: "system", content:
+            "Decide if a student's request to a school AI tutor should be FLAGGED. Flag = TRUE if ANY of these apply:\n" +
+            "1. CHEATING: asking the AI to WRITE their essay/paragraph/paper/speech/letter/homework, DO their math problems, finish their assignment, or solve test questions for them.\n" +
+            "2. OFF-TOPIC / NON-ACADEMIC: not about a school subject — examples include celebrities, gossip, 'Diddy', music artists, dating, social drama, jokes about people, fiction/roleplay, video games, sports, song lyrics, personal life advice, anything not tied to schoolwork.\n" +
+            "3. INAPPROPRIATE: sexual, violent, hateful, drugs, or otherwise unsafe for a 6-8th grader.\n" +
+            "Flag = FALSE only when the request is genuinely a study question (explanations, examples, study help, feedback on the student's own academic work).\n" +
+            "Be STRICT — when unsure, flag it. The reason should clearly say which category and what specifically." },
           { role: "user", content: `Student request: """${prompt}"""` },
         ],
         tools: [{
@@ -139,8 +152,8 @@ serve(async (req) => {
             parameters: {
               type: "object",
               properties: {
-                cheat: { type: "boolean" },
-                reason: { type: "string", description: "Short reason phrase, e.g. 'Asked AI to write an essay'." },
+                cheat: { type: "boolean", description: "True if request should be flagged for the teacher to review." },
+                reason: { type: "string", description: "Short reason, e.g. 'Asked AI to write an essay' or 'Off-topic: asked about Diddy'." },
               },
               required: ["cheat", "reason"],
               additionalProperties: false,
