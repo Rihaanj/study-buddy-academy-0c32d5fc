@@ -34,7 +34,7 @@ export const priorityLevel = (score: number) => {
 
 export const DAILY_LEVEL_CAP = 4;
 export const REDUCED_GAIN_RATIO = 0.25;
-export const TASK_XP_COOLDOWN_MS = 5 * 60 * 1000; // 5 min
+export const TASK_XP_COOLDOWN_MS = 2 * 60 * 1000; // 2 min
 
 // Test XP base by difficulty (max XP at 100% score)
 export const TEST_BASE_XP = { easy: 10, medium: 20, hard: 30 } as const;

@@ -1,42 +1,48 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
+
 /**
- * Heuristic detection: is this prompt asking the AI to write the user's
- * homework / essay / assignment for them? We allow help / explanation,
- * but block "write a 500-word essay on..." and similar.
+ * Regex quick-check for the obvious cheat phrasings. We still call the AI
+ * classifier for the ambiguous ones, but this saves a roundtrip when it's clear.
  */
-const CHEAT_PATTERNS: RegExp[] = [
+const OBVIOUS: RegExp[] = [
   /\bwrite\s+(?:me\s+)?(?:a|an|my)\s+(?:\d+\s*[-\s]?word\s+)?(?:essay|paragraph|paper|report|story|article|speech|letter)\b/i,
-  /\b(?:do|complete|finish|solve)\s+(?:my|the)\s+(?:homework|assignment|worksheet|test|exam|quiz)\b/i,
-  /\bwrite\s+(?:my|the)\s+(?:homework|assignment|paper)\b/i,
-  /\b(?:essay|paragraph|paper)\s+about\b.*\b(?:for me|for my class)\b/i,
+  /\b(?:do|complete|finish|solve)\s+(?:all\s+)?(?:my|the|these)\s+(?:homework|assignment|worksheet|test|exam|quiz|problems?)\b/i,
+  /\bwrite\s+(?:my|the)\s+(?:homework|assignment|paper|essay)\b/i,
 ];
 
-export function detectCheatingIntent(prompt: string): { suspected: boolean; reason: string } {
+function obviousCheat(prompt: string): string | null {
   const p = (prompt || "").trim();
-  if (!p) return { suspected: false, reason: "" };
-  for (const re of CHEAT_PATTERNS) {
-    if (re.test(p)) return { suspected: true, reason: "Asked the AI to write homework/essay for them" };
-  }
-  // Also flag huge prompts that look like "write this for me"
-  if (p.length > 600 && /\bwrite\b/i.test(p) && /\b(essay|paragraph|paper|report)\b/i.test(p)) {
-    return { suspected: true, reason: "Long write-this-for-me request" };
-  }
-  return { suspected: false, reason: "" };
+  if (!p) return null;
+  for (const re of OBVIOUS) if (re.test(p)) return "Asked the AI to write homework/essay for them";
+  return null;
 }
 
-export async function fileCheatReport(opts: {
-  userId: string;
-  reason: string;
-  context: string;
-}) {
-  // Pull display fields for the admin's review
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name,email")
-    .eq("user_id", opts.userId)
-    .maybeSingle();
+/**
+ * Combined check: fast regex first, then AI classifier for the grey area.
+ * Returns reason string if flagged, null otherwise.
+ */
+export async function classifyCheatIntent(prompt: string): Promise<string | null> {
+  const obvious = obviousCheat(prompt);
+  if (obvious) return obvious;
+  if ((prompt || "").trim().length < 12) return null;
+  try {
+    const r = await fetch(FN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      body: JSON.stringify({ mode: "check-cheat", prompt }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (j?.cheat) return String(j.reason || "AI detected assignment-writing request");
+  } catch { /* ignore */ }
+  return null;
+}
 
+export async function fileCheatReport(opts: { userId: string; reason: string; context: string }) {
+  const { data: profile } = await supabase
+    .from("profiles").select("name,email").eq("user_id", opts.userId).maybeSingle();
   await supabase.from("cheat_reports").insert({
     user_id: opts.userId,
     user_name: profile?.name ?? null,
@@ -44,4 +50,10 @@ export async function fileCheatReport(opts: {
     reason: opts.reason,
     context: opts.context.slice(0, 2000),
   });
+}
+
+// Re-export synchronous API for backward compat
+export function detectCheatingIntent(prompt: string): { suspected: boolean; reason: string } {
+  const reason = obviousCheat(prompt);
+  return reason ? { suspected: true, reason } : { suspected: false, reason: "" };
 }
