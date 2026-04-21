@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
 export default function Focus() {
-  const { running, remaining, duration, integrity, start, stop } = useFocus();
+  const { running, remaining, duration, start, stop } = useFocus();
   const [custom, setCustom] = useState(45);
   const pct = duration ? (1 - remaining / duration) * 100 : 0;
 
@@ -15,7 +15,7 @@ export default function Focus() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Focus</h1>
-        <p className="text-muted-foreground text-sm">Floats across the app. Stay on tab to keep your XP bonus — no blocking, ever.</p>
+        <p className="text-muted-foreground text-sm">Timer floats across the app. Switch tabs freely while you study — XP is based purely on minutes.</p>
       </div>
 
       <div className="glass-strong p-8 grid place-items-center text-center">
@@ -33,7 +33,7 @@ export default function Focus() {
           <div className="absolute inset-0 grid place-items-center">
             <div>
               <div className="text-5xl font-mono font-bold gradient-text">{fmt(running ? remaining : custom*60)}</div>
-              <div className="text-xs text-muted-foreground mt-2">{running ? `Integrity ${integrity}%` : "Pick a duration"}</div>
+              <div className="text-xs text-muted-foreground mt-2">{running ? "Studying" : "Pick a duration"}</div>
             </div>
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function Focus() {
       </div>
 
       <div className="glass p-5 text-sm text-muted-foreground">
-        <strong className="text-foreground">XP:</strong> minutes × 2. <strong className="text-foreground">Bonus:</strong> +50% if integrity ≥ 90%. Switching tabs lowers integrity but never blocks you.
+        <strong className="text-foreground">XP:</strong> 2 XP per minute, multiplied by your active buffs. No tab-switching penalties.
       </div>
     </div>
   );

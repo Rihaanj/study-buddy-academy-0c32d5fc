@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
 export const FloatingFocus = () => {
-  const { running, remaining, duration, integrity, stop } = useFocus();
+  const { running, remaining, duration, stop } = useFocus();
   if (!running) return null;
   const pct = duration ? (1 - remaining / duration) * 100 : 0;
   return (
@@ -20,7 +20,7 @@ export const FloatingFocus = () => {
       </div>
       <div className="leading-tight">
         <div className="text-sm font-mono font-semibold">{fmt(remaining)}</div>
-        <div className="text-[11px] text-muted-foreground">Integrity {integrity}%</div>
+        <div className="text-[11px] text-muted-foreground">Focus</div>
       </div>
       <Button variant="ghost" size="icon" onClick={() => stop(false)} aria-label="Stop focus"><X className="h-4 w-4" /></Button>
     </div>
