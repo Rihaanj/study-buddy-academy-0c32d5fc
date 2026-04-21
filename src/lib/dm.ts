@@ -2,18 +2,35 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Find or create a direct-message chat between two friends.
- * Uses the new `dm_chats` table with ordered (user_a < user_b) pairs.
- * Returns the dm_chat id, or null on failure.
+ * Uses ordered pairs so every friendship maps to a single DM thread.
  */
 export async function getOrCreateDM(meId: string, friendId: string, _friendName: string | null): Promise<string | null> {
-  const [a, b] = meId < friendId ? [meId, friendId] : [friendId, meId];
+  const [userA, userB] = meId < friendId ? [meId, friendId] : [friendId, meId];
 
-  const { data: existing } = await supabase
-    .from("dm_chats").select("id").eq("user_a", a).eq("user_b", b).maybeSingle();
-  if (existing) return existing.id;
+  const { data: existing, error: readError } = await supabase
+    .from("dm_chats")
+    .select("id")
+    .eq("user_a", userA)
+    .eq("user_b", userB)
+    .maybeSingle();
+
+  if (existing?.id) return existing.id;
+  if (readError) return null;
 
   const { data, error } = await supabase
-    .from("dm_chats").insert({ user_a: a, user_b: b }).select("id").single();
-  if (error || !data) return null;
-  return data.id;
+    .from("dm_chats")
+    .insert({ user_a: userA, user_b: userB })
+    .select("id")
+    .single();
+
+  if (data?.id) return data.id;
+
+  const { data: fallback } = await supabase
+    .from("dm_chats")
+    .select("id")
+    .eq("user_a", userA)
+    .eq("user_b", userB)
+    .maybeSingle();
+
+  return fallback?.id ?? null;
 }
