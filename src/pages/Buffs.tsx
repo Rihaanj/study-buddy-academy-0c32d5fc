@@ -100,13 +100,26 @@ export default function Buffs() {
     })();
   }, [active]);
 
+  const COOLDOWN_MS = 30_000;
+  const COOLDOWN_KEY = "sba_buff_last_activate_v1";
+  const getLastActivate = () => Number(localStorage.getItem(COOLDOWN_KEY) || 0);
+  const setLastActivate = (t: number) => localStorage.setItem(COOLDOWN_KEY, String(t));
+
   const activate = async (b: InvBuff) => {
     if (!user) return;
     const m = b.metadata ?? {};
+    // 30-second cooldown between any two buff activations (anti-spam, prevents +25 farming)
+    const last = getLastActivate();
+    const remainingMs = last + COOLDOWN_MS - Date.now();
+    if (remainingMs > 0) {
+      toast.error(`Wait ${Math.ceil(remainingMs / 1000)}s before activating another buff.`);
+      return;
+    }
     // Instant consumable: directly grant XP
     if (m.instant && m.xpAmount) {
       await awardXp(user.id, m.xpAmount);
       await supabase.from("inventory").delete().eq("id", b.id);
+      setLastActivate(Date.now());
       toast.success(`+${m.xpAmount} XP instantly! ⚡`);
       return;
     }
@@ -121,11 +134,17 @@ export default function Buffs() {
         await supabase.from("active_buffs").update({ expires_at: extended }).eq("id", ab.id);
       }
       await supabase.from("inventory").delete().eq("id", b.id);
+      setLastActivate(Date.now());
       toast.success("Time Warp: active buffs extended ⏳");
       return;
     }
-    // Cap of 3 active buffs
-    if (active.length >= 3) {
+    // Cap of 3 active buffs (re-fetch to avoid stale-state bypass)
+    const { data: live } = await supabase
+      .from("active_buffs")
+      .select("id, expires_at")
+      .eq("user_id", user.id);
+    const liveActive = (live ?? []).filter((ab: any) => !ab.expires_at || new Date(ab.expires_at).getTime() > Date.now());
+    if (liveActive.length >= 3) {
       toast.error("Max 3 active buffs. Wait for one to expire.");
       return;
     }
@@ -140,6 +159,7 @@ export default function Buffs() {
     });
     if (error) { toast.error(error.message); return; }
     await supabase.from("inventory").delete().eq("id", b.id);
+    setLastActivate(Date.now());
     toast.success(`Buff active: ${m.label ?? prettyKey(b.item_key)} 🚀`);
   };
 
@@ -147,7 +167,7 @@ export default function Buffs() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2"><Sparkles className="h-6 w-6" /> Buffs</h1>
-        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP and shape your study sessions. Max 3 active at once.</p>
+        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP. Max 3 active · 30-second cooldown between activations.</p>
       </div>
 
       <section>
