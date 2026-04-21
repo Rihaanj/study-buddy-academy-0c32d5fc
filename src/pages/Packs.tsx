@@ -48,14 +48,25 @@ export default function Packs() {
   useEffect(() => {
     if (!user) return;
     load();
+    const channelName = `packs-${user.id}`;
     const ch = supabase
-      .channel(`packs-${user.id}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "inventory", filter: `user_id=eq.${user.id}` }, () => load())
+      .channel(channelName)
+      .on("postgres_changes", { event: "*", schema: "public", table: "inventory", filter: `user_id=eq.${user.id}` }, (payload) => {
+        const next = payload.new as any;
+        const old = payload.old as any;
+        setPacks((current) => {
+          if (payload.eventType === "DELETE") {
+            return current.filter((item) => item.id !== old?.id);
+          }
+          if (!next || next.item_type !== "pack") return current;
+          const without = current.filter((item) => item.id !== next.id);
+          return [next, ...without].sort((a, b) => new Date(b.acquired_at).getTime() - new Date(a.acquired_at).getTime());
+        });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user?.id]);
 
-  // Auto-grant streak packs on visit if eligible
   useEffect(() => {
     if (!user || !profile) return;
     (async () => {
@@ -67,78 +78,85 @@ export default function Packs() {
     })();
   }, [user?.id, profile?.streak]);
 
-  /** Spin the wheel for a brand-new pack (called from "Spin for new pack" button). */
-  const spinNewPack = async () => {
-    if (!user || spinning) return;
-    const rarity = rollRarity();
-    const { data, error } = await supabase
-      .from("inventory")
-      .insert({
-        user_id: user.id,
-        item_type: "pack",
-        item_key: "buff_pack",
-        rarity,
-        metadata: { opened: false, source: "manual_spin" },
-      })
-      .select()
-      .single();
-    if (error || !data) { toast.error(error?.message ?? "Could not spin"); return; }
-    setSpinning({ id: data.id, rarity });
-  };
-
-  /** Open an existing pack — show wheel for drama, then reveal a buff.
-   * Re-validates with the DB so spam-clicking / autoclickers can't open phantom packs.
-   */
   const open = async (pack: Pack) => {
     if (!user || opening || spinning) return;
     setOpening(pack.id);
-    // Re-fetch the pack to make sure (a) it still exists, (b) it isn't already opened.
     const { data: live } = await supabase
       .from("inventory")
       .select("id, metadata, rarity")
       .eq("id", pack.id)
       .eq("user_id", user.id)
       .maybeSingle();
+
     if (!live || (live.metadata as any)?.opened) {
       toast.error("That pack is no longer available.");
       setOpening(null);
       await load();
       return;
     }
+
     setSpinning({ id: pack.id, rarity: (live as any).rarity });
   };
 
-  /** Wheel finished spinning — reveal the buff and persist it. */
   const finishSpin = async () => {
     if (!spinning || !user) return;
-    const pack = packs.find((p) => p.id === spinning.id);
-    // If wheel was for opening an existing pack, grant a buff from the pool
-    if (pack && !pack.metadata?.opened) {
-      const pool = BUFF_POOL[spinning.rarity] ?? BUFF_POOL.common;
-      const reward = securePick(pool);
-      const { error: invErr } = await supabase.from("inventory").insert({
-        user_id: user.id,
-        item_type: "buff",
-        item_key: reward.key,
-        rarity: spinning.rarity,
-        metadata: { ...reward, source_pack: pack.id },
-      });
-      if (!invErr) {
-        await supabase
-          .from("inventory")
-          .update({ metadata: { ...pack.metadata, opened: true, reward } })
-          .eq("id", pack.id);
-        setRevealed({ id: pack.id, reward, rarity: spinning.rarity });
-        // Lucky Break — first pack ever opened
-        const { awardBadge } = await import("@/lib/badges");
-        await awardBadge(user.id, "lucky_break");
-      } else {
-        toast.error(invErr.message);
-      }
-    } else {
-      // Wheel was for "spinNewPack" — pack is already in inventory unopened
-      toast.success(`Got a ${rarityStyles[spinning.rarity].label} pack!`);
+
+    const { data: livePack, error: packErr } = await supabase
+      .from("inventory")
+      .select("id, rarity, metadata, acquired_at")
+      .eq("id", spinning.id)
+      .eq("user_id", user.id)
+      .eq("item_type", "pack")
+      .maybeSingle();
+
+    if (packErr || !livePack || (livePack.metadata as any)?.opened) {
+      toast.error("This pack was already used.");
+      setSpinning(null);
+      setOpening(null);
+      await load();
+      return;
     }
+
+    const pool = BUFF_POOL[spinning.rarity] ?? BUFF_POOL.common;
+    const reward = securePick(pool);
+
+    const { error: buffErr } = await supabase.from("inventory").insert({
+      user_id: user.id,
+      item_type: "buff",
+      item_key: reward.key,
+      rarity: spinning.rarity,
+      metadata: { ...reward, source_pack: livePack.id },
+    });
+
+    if (buffErr) {
+      toast.error(buffErr.message);
+      setSpinning(null);
+      setOpening(null);
+      return;
+    }
+
+    const { error: updateErr } = await supabase
+      .from("inventory")
+      .update({ metadata: { ...(livePack.metadata as any), opened: true, reward, opened_at: new Date().toISOString() } })
+      .eq("id", livePack.id)
+      .eq("user_id", user.id)
+      .eq("item_type", "pack")
+      .not("metadata->>opened", "eq", "true");
+
+    if (updateErr) {
+      toast.error(updateErr.message);
+      setSpinning(null);
+      setOpening(null);
+      return;
+    }
+
+    setPacks((current) => current.map((item) => item.id === livePack.id ? ({
+      ...item,
+      metadata: { ...(item.metadata ?? {}), opened: true, reward, opened_at: new Date().toISOString() },
+    }) : item));
+    setRevealed({ id: livePack.id, reward, rarity: spinning.rarity });
+    const { awardBadge } = await import("@/lib/badges");
+    await awardBadge(user.id, "lucky_break");
     setSpinning(null);
     setOpening(null);
   };
