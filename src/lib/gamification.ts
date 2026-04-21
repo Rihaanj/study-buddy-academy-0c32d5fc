@@ -1,12 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
-// Simple progression: every 100 XP = next level. Level 1 starts at 0 XP.
+// Progression: every 100 XP = next level. Level 1 reached at 100 XP, lvl 5 at 500 XP, etc.
+// (xp 0..99 = lvl 1 still, but you "reach" lvl N when xp >= N*100)
 export const XP_PER_LEVEL = 100;
-export const xpForLevel = (level: number) => Math.max(0, (level - 1) * XP_PER_LEVEL); // XP needed to reach `level`
-export const levelFromXp = (xp: number) => Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
+export const xpForLevel = (level: number) => Math.max(0, level * XP_PER_LEVEL); // XP needed to BE at `level`
+export const levelFromXp = (xp: number) => Math.max(1, Math.floor(xp / XP_PER_LEVEL));
 export const xpProgress = (xp: number) => {
   const level = levelFromXp(xp);
-  const into = xp - xpForLevel(level);
+  const into = xp - level * XP_PER_LEVEL;
   const needed = XP_PER_LEVEL;
   return { level, into, needed, pct: Math.min(100, Math.round((into / needed) * 100)), toNext: needed - into };
 };

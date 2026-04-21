@@ -60,11 +60,19 @@ function Tutor() {
   const [loading, setLoading] = useState(false);
   const ask = async () => {
     if (!q.trim()) return;
+    // Anti-autoclicker: 3-second cooldown between submissions
+    const last = Number(localStorage.getItem("sba_ai_last_ask") || 0);
+    const remaining = last + 3000 - Date.now();
+    if (remaining > 0) {
+      toast.error(`Slow down — wait ${Math.ceil(remaining / 1000)}s.`);
+      return;
+    }
+    localStorage.setItem("sba_ai_last_ask", String(Date.now()));
     // AI-powered cheating intent check (covers obvious + grey-area requests)
     const reason = await classifyCheatIntent(q);
     if (reason) {
       setOut("");
-      toast.error("I can help you understand the topic, but I won't write your essay or homework for you. This attempt has been logged.", { duration: 6000, icon: <ShieldAlert className="h-4 w-4" /> });
+      toast.error("I can only help with academic schoolwork. This attempt has been logged.", { duration: 6000, icon: <ShieldAlert className="h-4 w-4" /> });
       if (user) {
         await fileCheatReport({ userId: user.id, reason, context: q.slice(0, 1000) });
       }
@@ -107,6 +115,13 @@ function Tests() {
 
   const generate = async () => {
     if (!topic.trim()) return;
+    // Block off-topic / cheating test requests
+    const reason = await classifyCheatIntent(`Generate a test about: ${topic}`);
+    if (reason) {
+      toast.error("Tests can only be generated for academic subjects. This attempt has been logged.", { duration: 6000, icon: <ShieldAlert className="h-4 w-4" /> });
+      if (user) await fileCheatReport({ userId: user.id, reason, context: `[test] ${topic}`.slice(0, 1000) });
+      return;
+    }
     setLoading(true); setTest(null); setAnswers({}); setResults(null);
     try {
       const r = await fetch(FN_URL, {
@@ -284,6 +299,13 @@ function Practice() {
 
   const go = async () => {
     if (!topic.trim()) return;
+    // Block off-topic / cheating practice requests
+    const reason = await classifyCheatIntent(`Generate practice about: ${topic}`);
+    if (reason) {
+      toast.error("Practice can only be generated for academic subjects. This attempt has been logged.", { duration: 6000, icon: <ShieldAlert className="h-4 w-4" /> });
+      if (user) await fileCheatReport({ userId: user.id, reason, context: `[practice] ${topic}`.slice(0, 1000) });
+      return;
+    }
     setOut(""); setShowAnswers(false); setAnswerUnlockAt(null); setLoading(true);
     await streamAI({ body: { mode: "practice", prompt: `Topic: ${topic}` }, onDelta: (s) => setOut((o) => o + s) });
     setLoading(false);

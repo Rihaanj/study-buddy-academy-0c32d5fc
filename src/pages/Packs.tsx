@@ -86,11 +86,26 @@ export default function Packs() {
     setSpinning({ id: data.id, rarity });
   };
 
-  /** Open an existing pack — show wheel for drama, then reveal a buff. */
+  /** Open an existing pack — show wheel for drama, then reveal a buff.
+   * Re-validates with the DB so spam-clicking / autoclickers can't open phantom packs.
+   */
   const open = async (pack: Pack) => {
-    if (!user || opening) return;
+    if (!user || opening || spinning) return;
     setOpening(pack.id);
-    setSpinning({ id: pack.id, rarity: pack.rarity });
+    // Re-fetch the pack to make sure (a) it still exists, (b) it isn't already opened.
+    const { data: live } = await supabase
+      .from("inventory")
+      .select("id, metadata, rarity")
+      .eq("id", pack.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!live || (live.metadata as any)?.opened) {
+      toast.error("That pack is no longer available.");
+      setOpening(null);
+      await load();
+      return;
+    }
+    setSpinning({ id: pack.id, rarity: (live as any).rarity });
   };
 
   /** Wheel finished spinning — reveal the buff and persist it. */
