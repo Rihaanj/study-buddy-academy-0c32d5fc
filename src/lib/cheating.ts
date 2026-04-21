@@ -7,15 +7,24 @@ const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
  * classifier for the ambiguous ones, but this saves a roundtrip when it's clear.
  */
 const OBVIOUS: RegExp[] = [
-  /\bwrite\s+(?:me\s+)?(?:a|an|my)\s+(?:\d+\s*[-\s]?word\s+)?(?:essay|paragraph|paper|report|story|article|speech|letter)\b/i,
+  /\bwrite\s+(?:me\s+)?(?:a|an|my)\s+(?:\d+\s*[-\s]?word\s+)?(?:essay|paragraph|paper|report|story|article|speech|letter|poem|song)\b/i,
   /\b(?:do|complete|finish|solve)\s+(?:all\s+)?(?:my|the|these)\s+(?:homework|assignment|worksheet|test|exam|quiz|problems?)\b/i,
   /\bwrite\s+(?:my|the)\s+(?:homework|assignment|paper|essay)\b/i,
+];
+
+/** Off-topic / non-academic keyword sniff (catches Diddy-style requests fast). */
+const OFF_TOPIC: RegExp[] = [
+  /\b(diddy|p\W?diddy|kanye|drake|taylor swift|kardashian|tiktok|instagram|snapchat|fortnite|roblox|minecraft|gta)\b/i,
+  /\b(rizz|sigma|gyatt|skibidi|ohio|fanum tax|mewing)\b/i,
+  /\b(dating|crush|girlfriend|boyfriend|hook ?up|sexy|nude|porn)\b/i,
+  /\b(joke|roast|meme|gossip|tea|drama)\s+(about|on)\b/i,
 ];
 
 function obviousCheat(prompt: string): string | null {
   const p = (prompt || "").trim();
   if (!p) return null;
   for (const re of OBVIOUS) if (re.test(p)) return "Asked the AI to write homework/essay for them";
+  for (const re of OFF_TOPIC) if (re.test(p)) return "Off-topic / non-academic request";
   return null;
 }
 
@@ -26,7 +35,7 @@ function obviousCheat(prompt: string): string | null {
 export async function classifyCheatIntent(prompt: string): Promise<string | null> {
   const obvious = obviousCheat(prompt);
   if (obvious) return obvious;
-  if ((prompt || "").trim().length < 12) return null;
+  if ((prompt || "").trim().length < 3) return null;
   try {
     const r = await fetch(FN_URL, {
       method: "POST",
