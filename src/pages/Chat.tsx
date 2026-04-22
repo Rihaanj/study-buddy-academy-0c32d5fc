@@ -374,28 +374,48 @@ export default function Chat() {
           {chatTab === "gc" && visibleGroups.length === 0 && (
             <p className="text-xs text-muted-foreground p-2">No groups yet. Create one with the + button.</p>
           )}
-          {chatTab === "dm" && visibleDms.map((d) => (
-            <button key={d.id}
-              onClick={() => { setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }); }}
-              className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${active?.kind === "dm" && active.id === d.id ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
-              <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-7 w-7" />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{cleanText(d.partner?.name) || "Friend"}</div>
-                <div className="text-[11px] opacity-70 truncate">Direct message</div>
-              </div>
-            </button>
-          ))}
-          {chatTab === "gc" && visibleGroups.map((g) => (
-            <button key={g.id}
-              onClick={() => { setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }); }}
-              className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${active?.kind === "group" && active.id === g.id ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
-              <GroupAvatar url={g.image_url} name={g.name} className="h-7 w-7" />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{cleanText(g.name)}</div>
-                {g.subject && <div className="text-[11px] opacity-70 truncate">{cleanText(g.subject)}</div>}
-              </div>
-            </button>
-          ))}
+          {chatTab === "dm" && visibleDms.map((d) => {
+            const isActive = active?.kind === "dm" && active.id === d.id;
+            const unread = !isActive && d.unread_count > 0;
+            return (
+              <button key={d.id}
+                onClick={() => { setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }); }}
+                className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
+                <div className="relative shrink-0">
+                  <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-9 w-9" />
+                  {unread && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`text-sm truncate ${unread ? "font-bold" : "font-medium"}`}>{cleanText(d.partner?.name) || "Friend"}</div>
+                    {unread && <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-primary text-primary-foreground ml-auto shrink-0">{d.unread_count}</Badge>}
+                  </div>
+                  <div className={`text-[11px] truncate ${unread ? "opacity-90" : "opacity-60"}`}>{d.last_message}</div>
+                </div>
+              </button>
+            );
+          })}
+          {chatTab === "gc" && visibleGroups.map((g) => {
+            const isActive = active?.kind === "group" && active.id === g.id;
+            const unread = !isActive && g.unread_count > 0;
+            return (
+              <button key={g.id}
+                onClick={() => { setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }); }}
+                className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
+                <div className="relative shrink-0">
+                  <GroupAvatar url={g.image_url} name={g.name} className="h-9 w-9" />
+                  {unread && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`text-sm truncate ${unread ? "font-bold" : "font-medium"}`}>{cleanText(g.name)}</div>
+                    {unread && <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-primary text-primary-foreground ml-auto shrink-0">{g.unread_count}</Badge>}
+                  </div>
+                  <div className={`text-[11px] truncate ${unread ? "opacity-90" : "opacity-60"}`}>{g.last_message}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </aside>
 
