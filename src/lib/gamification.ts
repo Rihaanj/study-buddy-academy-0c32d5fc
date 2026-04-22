@@ -36,6 +36,8 @@ export const priorityLevel = (score: number) => {
 export const DAILY_LEVEL_CAP = 4;
 export const REDUCED_GAIN_RATIO = 0.25;
 export const TASK_XP_COOLDOWN_MS = 2 * 60 * 1000; // 2 min
+// Hard cap: max 1000 XP per day for any user (= 10 levels)
+export const DAILY_XP_HARD_CAP = 1000;
 
 // Test XP base by difficulty (max XP at 100% score)
 export const TEST_BASE_XP = { easy: 10, medium: 20, hard: 30 } as const;
