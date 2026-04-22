@@ -131,6 +131,33 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_reads: {
+        Row: {
+          chat_id: string
+          chat_kind: string
+          created_at: string
+          id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          chat_kind: string
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          chat_kind?: string
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cheat_reports: {
         Row: {
           context: string | null
@@ -312,6 +339,86 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      flashcard_decks: {
+        Row: {
+          created_at: string
+          id: string
+          subject: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subject?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subject?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      flashcards: {
+        Row: {
+          back: string
+          created_at: string
+          deck_id: string
+          ease_factor: number
+          front: string
+          id: string
+          last_result: string | null
+          last_reviewed_at: string | null
+          next_review_at: string
+          review_interval_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          back: string
+          created_at?: string
+          deck_id: string
+          ease_factor?: number
+          front: string
+          id?: string
+          last_result?: string | null
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          review_interval_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          back?: string
+          created_at?: string
+          deck_id?: string
+          ease_factor?: number
+          front?: string
+          id?: string
+          last_result?: string | null
+          last_reviewed_at?: string | null
+          next_review_at?: string
+          review_interval_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_decks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       focus_sessions: {
         Row: {
@@ -524,6 +631,7 @@ export type Database = {
           focus_streak: number
           id: string
           last_active_date: string | null
+          last_buff_activated_at: string | null
           last_review_prompt_at: string | null
           last_task_xp_at: string | null
           level: number
@@ -546,6 +654,7 @@ export type Database = {
           focus_streak?: number
           id?: string
           last_active_date?: string | null
+          last_buff_activated_at?: string | null
           last_review_prompt_at?: string | null
           last_task_xp_at?: string | null
           level?: number
@@ -568,6 +677,7 @@ export type Database = {
           focus_streak?: number
           id?: string
           last_active_date?: string | null
+          last_buff_activated_at?: string | null
           last_review_prompt_at?: string | null
           last_task_xp_at?: string | null
           level?: number
@@ -606,6 +716,78 @@ export type Database = {
           created_at?: string
           id?: string
           rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      study_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          subject: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          subject?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          subject?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      study_resources: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          size_bytes: number
+          subject: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          size_bytes?: number
+          subject?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          size_bytes?: number
+          subject?: string | null
+          summary?: string | null
+          title?: string
           updated_at?: string
           user_id?: string
         }
@@ -777,6 +959,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_inventory_buff: { Args: { _buff_id: string }; Returns: Json }
       admin_apply_level_penalty: {
         Args: { _report_id?: string; _user_id: string }
         Returns: undefined
