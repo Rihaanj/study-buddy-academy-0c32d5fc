@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Clock, Sparkles, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { awardXp } from "@/lib/gamification";
+
 
 type InvBuff = {
   id: string;
@@ -146,7 +146,7 @@ export default function Buffs() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2"><Sparkles className="h-6 w-6" /> Buffs</h1>
-        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP. Max 3 active · 30-second cooldown between activations.</p>
+        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP. Max 3 active · 4-second cooldown · 10 minutes of focused study required between activations.</p>
       </div>
 
       <section>
@@ -189,7 +189,7 @@ export default function Buffs() {
                     <Zap className="h-3 w-3" /> {m.instant ? "Instant" : m.durationMin ? `${m.durationMin} min` : "Permanent"}
                     {m.category && <span className="ml-auto text-[10px] uppercase tracking-wider opacity-70">{m.category}</span>}
                   </div>
-                  <Button onClick={() => activate(b)} className="mt-auto bg-gradient-primary text-primary-foreground" size="sm">Activate</Button>
+                  <Button onClick={() => activate(b)} disabled={activatingId === b.id} className="mt-auto bg-gradient-primary text-primary-foreground" size="sm">{activatingId === b.id ? "Activating…" : "Activate"}</Button>
                 </div>
               );
             })}

@@ -60,9 +60,9 @@ function Tutor() {
   const [loading, setLoading] = useState(false);
   const ask = async () => {
     if (!q.trim()) return;
-    // Anti-autoclicker: 3-second cooldown between submissions
+    // Anti-autoclicker: 4-second cooldown between submissions
     const last = Number(localStorage.getItem("sba_ai_last_ask") || 0);
-    const remaining = last + 3000 - Date.now();
+    const remaining = last + 4000 - Date.now();
     if (remaining > 0) {
       toast.error(`Slow down — wait ${Math.ceil(remaining / 1000)}s.`);
       return;
