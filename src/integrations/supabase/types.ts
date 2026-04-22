@@ -131,6 +131,45 @@ export type Database = {
         }
         Relationships: []
       }
+      burn_list: {
+        Row: {
+          created_at: string
+          expected_answer: string
+          id: string
+          last_wrong_at: string
+          question: string
+          resolved: boolean
+          times_wrong: number
+          topic: string | null
+          user_answer: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_answer: string
+          id?: string
+          last_wrong_at?: string
+          question: string
+          resolved?: boolean
+          times_wrong?: number
+          topic?: string | null
+          user_answer?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_answer?: string
+          id?: string
+          last_wrong_at?: string
+          question?: string
+          resolved?: boolean
+          times_wrong?: number
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_reads: {
         Row: {
           chat_id: string
@@ -197,6 +236,27 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_buff_usage: {
+        Row: {
+          count: number
+          day: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          day: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_pack_grants: {
         Row: {
           created_at: string
@@ -227,18 +287,21 @@ export type Database = {
           levels_gained: number
           updated_at: string
           user_id: string
+          xp_gained: number
         }
         Insert: {
           day: string
           levels_gained?: number
           updated_at?: string
           user_id: string
+          xp_gained?: number
         }
         Update: {
           day?: string
           levels_gained?: number
           updated_at?: string
           user_id?: string
+          xp_gained?: number
         }
         Relationships: []
       }
@@ -839,6 +902,48 @@ export type Database = {
           steps?: Json
           subject?: string | null
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      topic_mastery: {
+        Row: {
+          attempts: number
+          correct: number
+          created_at: string
+          id: string
+          last_practiced_at: string
+          mastery_pct: number
+          next_review_at: string
+          subject: string | null
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          correct?: number
+          created_at?: string
+          id?: string
+          last_practiced_at?: string
+          mastery_pct?: number
+          next_review_at?: string
+          subject?: string | null
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          correct?: number
+          created_at?: string
+          id?: string
+          last_practiced_at?: string
+          mastery_pct?: number
+          next_review_at?: string
+          subject?: string | null
+          topic?: string
           updated_at?: string
           user_id?: string
         }
