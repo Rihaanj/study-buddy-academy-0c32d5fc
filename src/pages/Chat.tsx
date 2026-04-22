@@ -19,6 +19,8 @@ import { awardBadge } from "@/lib/badges";
 import { isMeetMessage, decodeMeetUrl, makeMeetMessage } from "@/lib/meet";
 import { GroupMembersDialog } from "@/components/GroupMembersDialog";
 import { AIResponse } from "@/components/AIResponse";
+import { getChatSidebarData, markChatRead, type DmThread, type GroupThread } from "@/lib/chatMeta";
+import { Badge } from "@/components/ui/badge";
 
 type AnyMsg = {
   id: string; user_id: string; text: string | null; image_url: string | null;
@@ -35,8 +37,8 @@ async function checkCollaboratorBadge(userId: string) {
 export default function Chat() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [groups, setGroups] = useState<any[]>([]);
-  const [dmChats, setDmChats] = useState<any[]>([]); // rows from dm_chats with partner profile attached
+  const [groups, setGroups] = useState<GroupThread[]>([]);
+  const [dmChats, setDmChats] = useState<DmThread[]>([]);
   const [active, setActive] = useState<any>(null); // { kind: "group"|"dm", ...group or dmChat }
   const [messages, setMessages] = useState<AnyMsg[]>([]);
   const [profiles, setProfiles] = useState<Record<string, { name: string | null; avatar_url: string | null }>>({});
@@ -73,48 +75,25 @@ export default function Chat() {
 
   const loadLists = async () => {
     if (!user) return;
-    // Groups I'm in
-    const { data: memberships } = await supabase.from("group_members").select("group_id,role").eq("user_id", user.id);
-    const ids = (memberships ?? []).map((m: any) => m.group_id);
-    let gs: any[] = [];
-    if (ids.length) {
-      const { data } = await supabase.from("groups").select("*").in("id", ids).order("created_at", { ascending: false });
-      gs = (data ?? []).filter((g: any) => g.subject !== "__dm__");
-    }
-    setGroups(gs);
-
-    // DM chats I'm in
-    const { data: dms } = await supabase
-      .from("dm_chats")
-      .select("id,user_a,user_b,created_at")
-      .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
-      .order("created_at", { ascending: false });
-    const partnerIds = (dms ?? []).map((d: any) => d.user_a === user.id ? d.user_b : d.user_a);
-    let profMap: Record<string, any> = {};
-    if (partnerIds.length) {
-      const { data: ps } = await supabase.from("profiles").select("user_id,name,avatar_url,email").in("user_id", partnerIds);
-      (ps ?? []).forEach((p: any) => { profMap[p.user_id] = p; });
-    }
-    const enrichedDms = (dms ?? []).map((d: any) => {
-      const partnerId = d.user_a === user.id ? d.user_b : d.user_a;
-      return { ...d, partnerId, partner: profMap[partnerId] };
-    });
-    setDmChats(enrichedDms);
+    const { dmChats: nextDms, groups: nextGroups } = await getChatSidebarData(user.id);
+    const visibleGroups = nextGroups.filter((g) => g.subject !== "__dm__");
+    setGroups(visibleGroups);
+    setDmChats(nextDms);
 
     // Auto-activate requested chat from URL
     const wantedGroup = searchParams.get("group");
     const wantedDm = searchParams.get("dm");
     if (wantedGroup) {
-      const f = gs.find((g) => g.id === wantedGroup);
+      const f = visibleGroups.find((g) => g.id === wantedGroup);
       if (f) { setActive({ kind: "group", ...f }); setChatTab("gc"); return; }
     }
     if (wantedDm) {
-      const f = enrichedDms.find((d: any) => d.id === wantedDm);
+      const f = nextDms.find((d) => d.id === wantedDm);
       if (f) { setActive({ kind: "dm", ...f }); setChatTab("dm"); return; }
     }
     if (!active) {
-      if (enrichedDms.length) { setActive({ kind: "dm", ...enrichedDms[0] }); setChatTab("dm"); }
-      else if (gs.length) { setActive({ kind: "group", ...gs[0] }); setChatTab("gc"); }
+      if (nextDms.length) { setActive({ kind: "dm", ...nextDms[0] }); setChatTab("dm"); }
+      else if (visibleGroups.length) { setActive({ kind: "group", ...visibleGroups[0] }); setChatTab("gc"); }
     }
   };
 
@@ -128,6 +107,8 @@ export default function Chat() {
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadLists())
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members", filter: `user_id=eq.${user.id}` }, () => loadLists())
       .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, () => loadLists())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "dm_messages" }, () => loadLists())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadLists())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,6 +127,9 @@ export default function Chat() {
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       }
       setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+      // Mark this chat as read on open
+      if (user) await markChatRead(user.id, active.kind, active.id);
+      loadLists();
     })();
 
     const ch = supabase
@@ -154,10 +138,12 @@ export default function Chat() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: active.kind === "dm" ? "dm_messages" : "messages",
           filter: active.kind === "dm" ? `chat_id=eq.${active.id}` : `group_id=eq.${active.id}` },
-        (payload) => {
+        async (payload) => {
           setMessages((m) => m.some((x) => x.id === (payload.new as any).id) ? m : [...m, payload.new as any]);
           ensureProfiles([(payload.new as any).user_id]);
           setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+          // Auto-mark read because user is currently viewing this chat
+          if (user) await markChatRead(user.id, active.kind, active.id);
         }
       )
       .on(
@@ -233,11 +219,25 @@ export default function Chat() {
 
   const upload = async (file: File) => {
     if (!user || !active) return;
-    const path = `${user.id}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("chat-images").upload(path, file);
-    if (error) { toast.error(error.message); return; }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be under 10MB.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files can be uploaded here.");
+      return;
+    }
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${user.id}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage.from("chat-images").upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: false,
+    });
+    if (error) { toast.error(`Upload failed: ${error.message}`); return; }
     const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
     await insertMessage({ image_url: pub.publicUrl });
+    toast.success("Photo sent");
   };
 
   /** Soft-delete: sets deleted=true so peers see "this message was deleted". */
@@ -374,28 +374,48 @@ export default function Chat() {
           {chatTab === "gc" && visibleGroups.length === 0 && (
             <p className="text-xs text-muted-foreground p-2">No groups yet. Create one with the + button.</p>
           )}
-          {chatTab === "dm" && visibleDms.map((d) => (
-            <button key={d.id}
-              onClick={() => { setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }); }}
-              className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${active?.kind === "dm" && active.id === d.id ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
-              <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-7 w-7" />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{cleanText(d.partner?.name) || "Friend"}</div>
-                <div className="text-[11px] opacity-70 truncate">Direct message</div>
-              </div>
-            </button>
-          ))}
-          {chatTab === "gc" && visibleGroups.map((g) => (
-            <button key={g.id}
-              onClick={() => { setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }); }}
-              className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${active?.kind === "group" && active.id === g.id ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
-              <GroupAvatar url={g.image_url} name={g.name} className="h-7 w-7" />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{cleanText(g.name)}</div>
-                {g.subject && <div className="text-[11px] opacity-70 truncate">{cleanText(g.subject)}</div>}
-              </div>
-            </button>
-          ))}
+          {chatTab === "dm" && visibleDms.map((d) => {
+            const isActive = active?.kind === "dm" && active.id === d.id;
+            const unread = !isActive && d.unread_count > 0;
+            return (
+              <button key={d.id}
+                onClick={() => { setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }); }}
+                className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
+                <div className="relative shrink-0">
+                  <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-9 w-9" />
+                  {unread && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`text-sm truncate ${unread ? "font-bold" : "font-medium"}`}>{cleanText(d.partner?.name) || "Friend"}</div>
+                    {unread && <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-primary text-primary-foreground ml-auto shrink-0">{d.unread_count}</Badge>}
+                  </div>
+                  <div className={`text-[11px] truncate ${unread ? "opacity-90" : "opacity-60"}`}>{d.last_message}</div>
+                </div>
+              </button>
+            );
+          })}
+          {chatTab === "gc" && visibleGroups.map((g) => {
+            const isActive = active?.kind === "group" && active.id === g.id;
+            const unread = !isActive && g.unread_count > 0;
+            return (
+              <button key={g.id}
+                onClick={() => { setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }); }}
+                className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
+                <div className="relative shrink-0">
+                  <GroupAvatar url={g.image_url} name={g.name} className="h-9 w-9" />
+                  {unread && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`text-sm truncate ${unread ? "font-bold" : "font-medium"}`}>{cleanText(g.name)}</div>
+                    {unread && <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-primary text-primary-foreground ml-auto shrink-0">{g.unread_count}</Badge>}
+                  </div>
+                  <div className={`text-[11px] truncate ${unread ? "opacity-90" : "opacity-60"}`}>{g.last_message}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </aside>
 

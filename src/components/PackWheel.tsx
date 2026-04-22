@@ -53,7 +53,7 @@ interface Props {
 
 export const PackWheel = ({ targetRarity, onDone }: Props) => {
   const [rotation, setRotation] = useState(0);
-  const size = 280;
+  const size = 300;
   const segments = useMemo(() => buildSegments(), []);
   const gradient = useMemo(() => buildGradient(segments), [segments]);
 
@@ -62,44 +62,70 @@ export const PackWheel = ({ targetRarity, onDone }: Props) => {
     const landingAngle = pickLandingAngle(targetSegment);
     const finalRotation = 360 * (8 + Math.floor(secureRandom() * 4)) + (360 - landingAngle);
     requestAnimationFrame(() => setRotation(finalRotation));
-    const t = window.setTimeout(onDone, 4200);
+    const t = window.setTimeout(onDone, 4500);
     return () => window.clearTimeout(t);
   }, [onDone, segments, targetRarity]);
 
   return (
     <div className="relative mx-auto" style={{ width: size, height: size }}>
-      <div className="absolute left-1/2 -translate-x-1/2 -top-2 z-10">
-        <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-primary drop-shadow-[0_0_8px_hsl(var(--primary))]" />
+      {/* Outer glow ring */}
+      <div className="absolute inset-[-12px] rounded-full bg-gradient-to-br from-primary/30 via-accent/20 to-fuchsia-500/30 blur-2xl opacity-70 animate-pulse" />
+
+      {/* Pointer */}
+      <div className="absolute left-1/2 -translate-x-1/2 -top-3 z-20">
+        <div className="relative">
+          <div className="w-0 h-0 border-l-[14px] border-r-[14px] border-t-[24px] border-l-transparent border-r-transparent border-t-foreground drop-shadow-[0_0_12px_hsl(var(--primary))]" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-2 w-2 rounded-full bg-foreground shadow-[0_0_8px_hsl(var(--primary))]" />
+        </div>
       </div>
 
+      {/* Wheel body */}
       <div
-        className="w-full h-full rounded-full ring-4 ring-white/10 shadow-glow overflow-hidden relative"
+        className="relative w-full h-full rounded-full ring-[6px] ring-white/15 shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.6)] overflow-hidden"
         style={{
           transform: `rotate(${rotation}deg)`,
-          transition: "transform 4s cubic-bezier(0.17, 0.67, 0.21, 0.99)",
+          transition: "transform 4.2s cubic-bezier(0.15, 0.7, 0.18, 1)",
           background: gradient,
         }}
       >
-        <div className="absolute inset-[18px] rounded-full ring-1 ring-white/10 bg-background/20 backdrop-blur-[1px]" />
+        {/* Tick marks at segment boundaries */}
+        {segments.map((s) => (
+          <div
+            key={`tick-${s.rarity}`}
+            className="absolute left-1/2 top-1/2 origin-bottom"
+            style={{
+              width: 2,
+              height: "50%",
+              transform: `translateX(-50%) translateY(-100%) rotate(${s.end}deg)`,
+              background: "rgba(255,255,255,0.25)",
+            }}
+          />
+        ))}
+
+        {/* Inner ring */}
+        <div className="absolute inset-[24px] rounded-full ring-1 ring-white/15 bg-background/30 backdrop-blur-[1px]" />
+
+        {/* Center hub */}
         <div className="absolute inset-0 grid place-items-center pointer-events-none">
-          <div className="h-20 w-20 rounded-full grid place-items-center ring-2 ring-background bg-background/90 shadow-xl">
-            <Sparkles className="h-8 w-8 text-foreground/80 drop-shadow-lg animate-pulse" />
+          <div className="h-24 w-24 rounded-full grid place-items-center ring-2 ring-background bg-gradient-to-br from-background/95 to-background/70 shadow-2xl">
+            <Sparkles className="h-9 w-9 text-foreground/80 drop-shadow-lg animate-pulse" />
           </div>
         </div>
       </div>
 
-      <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
+      {/* Legend */}
+      <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
         {segments.map((segment) => (
           <div key={segment.rarity} className="flex items-center gap-1.5">
             <span
-              className="h-3 w-3 rounded-full ring-1 ring-white/20"
-              style={{ backgroundColor: segment.color, boxShadow: `0 0 10px ${segment.color}` }}
+              className="h-3 w-3 rounded-full ring-1 ring-white/30"
+              style={{ backgroundColor: segment.color, boxShadow: `0 0 12px ${segment.color}` }}
             />
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{segment.label}</span>
           </div>
         ))}
       </div>
-      <p className="text-center text-xs text-muted-foreground mt-3">Wheel result matches the reward rarity.</p>
+      <p className="text-center text-xs text-muted-foreground mt-2">Wherever the wheel lands is what you'll get.</p>
     </div>
   );
 };
