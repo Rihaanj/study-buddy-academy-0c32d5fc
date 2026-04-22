@@ -76,25 +76,31 @@ export async function awardXp(userId: string, amount: number) {
   const today = new Date().toISOString().slice(0, 10);
   const oldLevel = profile.level ?? 1;
 
-  // Pull today's level-gain counter
+  // Pull today's level-gain counter AND xp-gained counter
   const { data: dp } = await supabase
     .from("daily_xp_progress")
-    .select("levels_gained")
+    .select("levels_gained, xp_gained")
     .eq("user_id", userId)
     .eq("day", today)
     .maybeSingle();
   const levelsToday = dp?.levels_gained ?? 0;
+  const xpToday = (dp as any)?.xp_gained ?? 0;
 
-  // Reduce gain if already at cap (only applies to gains, not losses)
+  // Reduce gain if already at level cap (only for gains)
   const capped = levelsToday >= DAILY_LEVEL_CAP;
   let effectiveAmount = amount;
   if (amount > 0 && capped) {
     effectiveAmount = Math.max(1, Math.round(amount * REDUCED_GAIN_RATIO));
   }
+  // HARD daily XP cap: never exceed 1000 XP per day in gains
+  if (effectiveAmount > 0) {
+    const remaining = Math.max(0, DAILY_XP_HARD_CAP - xpToday);
+    effectiveAmount = Math.min(effectiveAmount, remaining);
+  }
 
   // XP can never go below 0
   const newXp = Math.max(0, (profile.xp ?? 0) + effectiveAmount);
-  let newLevel = levelFromXp(newXp);
+  const newLevel = levelFromXp(newXp);
 
   // Streak — only update on positive XP gain
   const last = profile.last_active_date ? String(profile.last_active_date) : null;
@@ -110,14 +116,13 @@ export async function awardXp(userId: string, amount: number) {
     .update({ xp: newXp, level: newLevel, streak, last_active_date: streakDate })
     .eq("user_id", userId);
 
-  // Refresh weekly leaderboard score (best-effort, don't block on errors)
+  // Refresh weekly leaderboard score (best-effort)
   supabase.rpc("refresh_weekly_score", { _user_id: userId }).then(() => {}, () => {});
 
-  // Streak badges (lazy import to avoid cycle)
+  // Streak badges
   try {
     const mod = await import("./badges");
     await mod.checkStreakBadges(userId, streak);
-    // Comeback Kid: had a streak, lost it (last not yesterday/today), now back
     if (last && last !== today) {
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       if (last !== yesterday && (profile.streak ?? 0) > 0) {
@@ -126,11 +131,18 @@ export async function awardXp(userId: string, amount: number) {
     }
   } catch {}
 
-  // Update today's level counter
+  // Update today's progress (xp + level counters)
   const gainedNow = Math.max(0, newLevel - oldLevel);
-  if (gainedNow > 0) {
-    await supabase.from("daily_xp_progress").upsert(
-      { user_id: userId, day: today, levels_gained: levelsToday + gainedNow, updated_at: new Date().toISOString() },
+  const xpGainedThisCall = Math.max(0, effectiveAmount);
+  if (gainedNow > 0 || xpGainedThisCall > 0) {
+    await (supabase.from("daily_xp_progress") as any).upsert(
+      {
+        user_id: userId,
+        day: today,
+        levels_gained: levelsToday + gainedNow,
+        xp_gained: xpToday + xpGainedThisCall,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: "user_id,day" }
     );
   }
@@ -144,6 +156,7 @@ export async function awardXp(userId: string, amount: number) {
     levelsToday: levelsToday + gainedNow,
     awardedAmount: effectiveAmount,
     requestedAmount: amount,
+    dailyXpCapped: amount > 0 && effectiveAmount < amount,
   };
 }
 
