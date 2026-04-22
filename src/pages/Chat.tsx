@@ -19,6 +19,8 @@ import { awardBadge } from "@/lib/badges";
 import { isMeetMessage, decodeMeetUrl, makeMeetMessage } from "@/lib/meet";
 import { GroupMembersDialog } from "@/components/GroupMembersDialog";
 import { AIResponse } from "@/components/AIResponse";
+import { getChatSidebarData, markChatRead, type DmThread, type GroupThread } from "@/lib/chatMeta";
+import { Badge } from "@/components/ui/badge";
 
 type AnyMsg = {
   id: string; user_id: string; text: string | null; image_url: string | null;
@@ -35,8 +37,8 @@ async function checkCollaboratorBadge(userId: string) {
 export default function Chat() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [groups, setGroups] = useState<any[]>([]);
-  const [dmChats, setDmChats] = useState<any[]>([]); // rows from dm_chats with partner profile attached
+  const [groups, setGroups] = useState<GroupThread[]>([]);
+  const [dmChats, setDmChats] = useState<DmThread[]>([]);
   const [active, setActive] = useState<any>(null); // { kind: "group"|"dm", ...group or dmChat }
   const [messages, setMessages] = useState<AnyMsg[]>([]);
   const [profiles, setProfiles] = useState<Record<string, { name: string | null; avatar_url: string | null }>>({});
@@ -73,48 +75,25 @@ export default function Chat() {
 
   const loadLists = async () => {
     if (!user) return;
-    // Groups I'm in
-    const { data: memberships } = await supabase.from("group_members").select("group_id,role").eq("user_id", user.id);
-    const ids = (memberships ?? []).map((m: any) => m.group_id);
-    let gs: any[] = [];
-    if (ids.length) {
-      const { data } = await supabase.from("groups").select("*").in("id", ids).order("created_at", { ascending: false });
-      gs = (data ?? []).filter((g: any) => g.subject !== "__dm__");
-    }
-    setGroups(gs);
-
-    // DM chats I'm in
-    const { data: dms } = await supabase
-      .from("dm_chats")
-      .select("id,user_a,user_b,created_at")
-      .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
-      .order("created_at", { ascending: false });
-    const partnerIds = (dms ?? []).map((d: any) => d.user_a === user.id ? d.user_b : d.user_a);
-    let profMap: Record<string, any> = {};
-    if (partnerIds.length) {
-      const { data: ps } = await supabase.from("profiles").select("user_id,name,avatar_url,email").in("user_id", partnerIds);
-      (ps ?? []).forEach((p: any) => { profMap[p.user_id] = p; });
-    }
-    const enrichedDms = (dms ?? []).map((d: any) => {
-      const partnerId = d.user_a === user.id ? d.user_b : d.user_a;
-      return { ...d, partnerId, partner: profMap[partnerId] };
-    });
-    setDmChats(enrichedDms);
+    const { dmChats: nextDms, groups: nextGroups } = await getChatSidebarData(user.id);
+    const visibleGroups = nextGroups.filter((g) => g.subject !== "__dm__");
+    setGroups(visibleGroups);
+    setDmChats(nextDms);
 
     // Auto-activate requested chat from URL
     const wantedGroup = searchParams.get("group");
     const wantedDm = searchParams.get("dm");
     if (wantedGroup) {
-      const f = gs.find((g) => g.id === wantedGroup);
+      const f = visibleGroups.find((g) => g.id === wantedGroup);
       if (f) { setActive({ kind: "group", ...f }); setChatTab("gc"); return; }
     }
     if (wantedDm) {
-      const f = enrichedDms.find((d: any) => d.id === wantedDm);
+      const f = nextDms.find((d) => d.id === wantedDm);
       if (f) { setActive({ kind: "dm", ...f }); setChatTab("dm"); return; }
     }
     if (!active) {
-      if (enrichedDms.length) { setActive({ kind: "dm", ...enrichedDms[0] }); setChatTab("dm"); }
-      else if (gs.length) { setActive({ kind: "group", ...gs[0] }); setChatTab("gc"); }
+      if (nextDms.length) { setActive({ kind: "dm", ...nextDms[0] }); setChatTab("dm"); }
+      else if (visibleGroups.length) { setActive({ kind: "group", ...visibleGroups[0] }); setChatTab("gc"); }
     }
   };
 
