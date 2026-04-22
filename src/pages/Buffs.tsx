@@ -121,92 +121,25 @@ export default function Buffs() {
     })();
   }, [active]);
 
-  const COOLDOWN_MS = 30_000;
-  const COOLDOWN_KEY = "sba_buff_last_activate_v1";
-  const getLastActivate = () => Number(localStorage.getItem(COOLDOWN_KEY) || 0);
-  const setLastActivate = (t: number) => localStorage.setItem(COOLDOWN_KEY, String(t));
-
-  const consumeBuff = async (buffId: string) => {
-    const { error } = await supabase.from("inventory").delete().eq("id", buffId).eq("user_id", user?.id ?? "");
-    return !error;
-  };
+  // Server-side guard. Single in-flight activation prevents double-clicks during round-trip.
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   const activate = async (b: InvBuff) => {
-    if (!user) return;
-    const m = b.metadata ?? {};
-    const last = getLastActivate();
-    const remainingMs = last + COOLDOWN_MS - Date.now();
-    if (remainingMs > 0) {
-      toast.error(`Wait ${Math.ceil(remainingMs / 1000)}s before activating another buff.`);
-      return;
-    }
-
-    const { data: liveBuff } = await supabase
-      .from("inventory")
-      .select("id")
-      .eq("id", b.id)
-      .eq("user_id", user.id)
-      .eq("item_type", "buff")
-      .maybeSingle();
-
-    if (!liveBuff) {
-      toast.error("That buff was already used.");
-      return;
-    }
-
-    if (m.instant && m.xpAmount) {
-      const consumed = await consumeBuff(b.id);
-      if (!consumed) { toast.error("That buff was already used."); return; }
-      await awardXp(user.id, m.xpAmount);
-      setLastActivate(Date.now());
-      toast.success(`+${m.xpAmount} XP instantly! ⚡`);
-      return;
-    }
-
-    if (b.item_key === "time_warp") {
-      const now = Date.now();
-      for (const ab of active) {
-        if (!ab.expires_at) continue;
-        const remaining = new Date(ab.expires_at).getTime() - now;
-        if (remaining <= 0) continue;
-        const extended = new Date(now + remaining * 1.5).toISOString();
-        await supabase.from("active_buffs").update({ expires_at: extended }).eq("id", ab.id);
+    if (!user || activatingId) return;
+    setActivatingId(b.id);
+    try {
+      const { data, error } = await supabase.rpc("activate_inventory_buff", { _buff_id: b.id });
+      if (error) {
+        toast.error(error.message || "Could not activate buff");
+        return;
       }
-      const consumed = await consumeBuff(b.id);
-      if (!consumed) { toast.error("That buff was already used."); return; }
-      setLastActivate(Date.now());
-      toast.success("Time Warp: active buffs extended ⏳");
-      return;
+      const result = (data ?? {}) as { kind?: string; message?: string };
+      toast.success(result.message ?? "Buff activated");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not activate buff");
+    } finally {
+      setActivatingId(null);
     }
-
-    const { data: live } = await supabase
-      .from("active_buffs")
-      .select("id, expires_at")
-      .eq("user_id", user.id);
-    const liveActive = (live ?? []).filter((ab: any) => !ab.expires_at || new Date(ab.expires_at).getTime() > Date.now());
-    if (liveActive.length >= 3) {
-      toast.error("Max 3 active buffs. Wait for one to expire.");
-      return;
-    }
-
-    const expires_at = m.durationMin ? new Date(Date.now() + m.durationMin * 60_000).toISOString() : null;
-    const { error } = await supabase.from("active_buffs").insert({
-      user_id: user.id,
-      buff_key: b.item_key,
-      rarity: b.rarity,
-      multiplier: m.multiplier ?? 1,
-      category: m.category ?? "xp",
-      expires_at,
-    });
-    if (error) { toast.error(error.message); return; }
-
-    const consumed = await consumeBuff(b.id);
-    if (!consumed) {
-      toast.error("Buff activated, but item removal failed. Reload once if needed.");
-      return;
-    }
-    setLastActivate(Date.now());
-    toast.success(`Buff active: ${m.label ?? prettyKey(b.item_key)} 🚀`);
   };
 
   return (
