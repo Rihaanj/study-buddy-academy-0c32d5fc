@@ -219,11 +219,25 @@ export default function Chat() {
 
   const upload = async (file: File) => {
     if (!user || !active) return;
-    const path = `${user.id}/${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from("chat-images").upload(path, file);
-    if (error) { toast.error(error.message); return; }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image must be under 10MB.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files can be uploaded here.");
+      return;
+    }
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${user.id}/${Date.now()}-${safeName}`;
+    const { error } = await supabase.storage.from("chat-images").upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: false,
+    });
+    if (error) { toast.error(`Upload failed: ${error.message}`); return; }
     const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
     await insertMessage({ image_url: pub.publicUrl });
+    toast.success("Photo sent");
   };
 
   /** Soft-delete: sets deleted=true so peers see "this message was deleted". */
