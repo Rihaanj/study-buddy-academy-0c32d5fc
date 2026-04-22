@@ -107,6 +107,8 @@ export default function Chat() {
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadLists())
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members", filter: `user_id=eq.${user.id}` }, () => loadLists())
       .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, () => loadLists())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "dm_messages" }, () => loadLists())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadLists())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,6 +127,9 @@ export default function Chat() {
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       }
       setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+      // Mark this chat as read on open
+      if (user) await markChatRead(user.id, active.kind, active.id);
+      loadLists();
     })();
 
     const ch = supabase
@@ -133,10 +138,12 @@ export default function Chat() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: active.kind === "dm" ? "dm_messages" : "messages",
           filter: active.kind === "dm" ? `chat_id=eq.${active.id}` : `group_id=eq.${active.id}` },
-        (payload) => {
+        async (payload) => {
           setMessages((m) => m.some((x) => x.id === (payload.new as any).id) ? m : [...m, payload.new as any]);
           ensureProfiles([(payload.new as any).user_id]);
           setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
+          // Auto-mark read because user is currently viewing this chat
+          if (user) await markChatRead(user.id, active.kind, active.id);
         }
       )
       .on(
