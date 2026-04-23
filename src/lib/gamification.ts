@@ -3,13 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 // Progression: every 100 XP = next level. Level 1 reached at 100 XP, lvl 5 at 500 XP, etc.
 // (xp 0..99 = lvl 1 still, but you "reach" lvl N when xp >= N*100)
 export const XP_PER_LEVEL = 100;
-export const xpForLevel = (level: number) => Math.max(0, level * XP_PER_LEVEL); // XP needed to BE at `level`
-export const levelFromXp = (xp: number) => Math.max(1, Math.floor(xp / XP_PER_LEVEL));
+// XP needed to BE at level N (level 1 = 0 xp, level 2 = 100 xp, etc.)
+export const xpForLevel = (level: number) => Math.max(0, (level - 1) * XP_PER_LEVEL);
+export const levelFromXp = (xp: number) => Math.max(1, Math.floor(Math.max(0, xp) / XP_PER_LEVEL) + 1);
 export const xpProgress = (xp: number) => {
-  const level = levelFromXp(xp);
-  const into = xp - level * XP_PER_LEVEL;
+  const safeXp = Math.max(0, xp || 0);
+  const level = levelFromXp(safeXp);
+  // XP earned within the current level (0..XP_PER_LEVEL-1).
+  // Level 1 spans xp 0..99, Level 2 spans 100..199, etc.
+  const into = Math.max(0, safeXp - (level - 1) * XP_PER_LEVEL);
   const needed = XP_PER_LEVEL;
-  return { level, into, needed, pct: Math.min(100, Math.round((into / needed) * 100)), toNext: needed - into };
+  const pct = Math.max(0, Math.min(100, Math.round((into / needed) * 100)));
+  return { level, into, needed, pct, toNext: Math.max(0, needed - into) };
 };
 export const evolutionStage = (level: number) => {
   if (level >= 50) return "cosmic_genius";
