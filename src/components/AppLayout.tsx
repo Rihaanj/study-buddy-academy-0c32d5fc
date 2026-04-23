@@ -99,7 +99,10 @@ export const AppLayout = () => {
           />
           <div className="leading-tight min-w-0">
             <div className="font-semibold tracking-tight truncate text-sm sm:text-base">Study Bud AI</div>
-            <div className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">by Rihaan Yeswant Jain</div>
+            <div className="hidden sm:flex items-center gap-1.5">
+              <span className="text-[9px] font-bold tracking-[0.2em] px-1.5 py-0.5 rounded-md bg-gradient-primary text-primary-foreground shadow-glow">RYJ</span>
+              <span className="text-[10px] text-muted-foreground">by Rihaan Yeswant Jain</span>
+            </div>
           </div>
         </NavLink>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -120,28 +123,35 @@ export const AppLayout = () => {
 
       {/* Desktop side nav + content */}
       <div className="flex-1 flex">
-        <nav className="hidden md:flex flex-col gap-1 p-3 w-52 lg:w-56 border-r border-white/10 glass-strong">
-          {tabs.map((t) => (
-            <Tooltip key={t.to} delayDuration={300}>
-              <TooltipTrigger asChild>
-                <NavLink
-                  to={t.to}
-                  end={t.end}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-xl transition ${
-                      isActive ? "bg-gradient-primary text-primary-foreground shadow-glow" : "hover:bg-white/5 text-muted-foreground hover:text-foreground"
-                    }`
-                  }
-                >
-                  <t.icon className="h-4 w-4 shrink-0" />
-                  <span className="text-sm font-medium truncate">{t.label}</span>
-                </NavLink>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-[220px] text-xs">
-                {TAB_HINTS[t.to] ?? t.label}
-              </TooltipContent>
-            </Tooltip>
-          ))}
+        <nav className="hidden md:flex flex-col gap-1 p-3 w-52 lg:w-56 border-r border-white/10 glass-strong relative overflow-hidden">
+          {/* Subtle nebula accent so the sidebar isn't a flat dark stripe */}
+          <div aria-hidden className="pointer-events-none absolute -top-20 -left-10 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute bottom-0 -right-10 h-48 w-48 rounded-full bg-secondary/20 blur-3xl" />
+          <div className="relative flex flex-col gap-1">
+            {tabs.map((t) => (
+              <Tooltip key={t.to} delayDuration={300}>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to={t.to}
+                    end={t.end}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-xl transition group ${
+                        isActive
+                          ? "bg-gradient-primary text-primary-foreground shadow-glow ring-1 ring-white/20"
+                          : "hover:bg-white/[0.07] text-muted-foreground hover:text-foreground hover:ring-1 hover:ring-white/10"
+                      }`
+                    }
+                  >
+                    <t.icon className="h-4 w-4 shrink-0" />
+                    <span className="text-sm font-medium truncate">{t.label}</span>
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[220px] text-xs">
+                  {TAB_HINTS[t.to] ?? t.label}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
         </nav>
 
         <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 pb-32 md:pb-8 max-w-6xl mx-auto w-full animate-fade-in">
