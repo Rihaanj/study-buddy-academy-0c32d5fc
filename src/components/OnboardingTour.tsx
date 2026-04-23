@@ -7,105 +7,122 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Sparkles, Brain, Target, Trophy, Package, ChevronRight, ChevronLeft, Check, Gift,
-  Home, ListChecks, Calendar, MessageCircle, Users, Zap, User, HelpCircle,
+  Home, ListChecks, Calendar, MessageCircle, Users, Zap, User, HelpCircle, Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { secureRandom } from "@/lib/random";
 
 const ONBOARDING_FLAG = "_onboarded_v2";
-const SKIP_FLAG = "_onboarding_skip_v2"; // session-only "skip the rest"
+const SKIP_FLAG = "_onboarding_skip_v2"; // session-only
 
 type Step = {
   icon: any;
+  emoji: string;
   title: string;
   body: string;
-  route?: string;       // navigate before showing
+  hype?: string;       // little chip above the title
+  route?: string;
   cta?: string;
 };
 
 const STEPS: Step[] = [
   {
-    icon: Sparkles,
-    title: "Welcome to Study Bud AI ✨",
-    body: "Your cosmic Student OS — AI tutor, planner, focus timer, packs, buffs, friends, and more. Take a 60-second guided tour and we'll drop 3 free packs in your inventory at the end.",
+    icon: Rocket, emoji: "🚀",
+    hype: "Mission start",
+    title: "Welcome aboard, future Cosmic Genius!",
+    body: "You just unlocked the most fun way to study. Take a 60-second cosmic tour and we'll drop 3 mystery packs in your inventory at the end. Ready to fly?",
+    route: "/",
+    cta: "Let's go!",
+  },
+  {
+    icon: Home, emoji: "🏠",
+    hype: "Stop #1 — Home",
+    title: "Your launchpad",
+    body: "This is mission control. Today's tasks, your streak, weekly XP, quick shortcuts — all here. Whenever you're lost, this is home base.",
     route: "/",
   },
   {
-    icon: Home,
-    title: "Home — your launchpad",
-    body: "Your dashboard. See today's tasks, current streak, weekly XP gains, and quick shortcuts. Always come back here to get oriented.",
-    route: "/",
-  },
-  {
-    icon: ListChecks,
-    title: "Planner — your task brain",
-    body: "Add assignments and tasks. Set difficulty + grade weight + your confidence — Smart Priority sorts them so you always know what to tackle first. Completing tasks earns XP.",
+    icon: ListChecks, emoji: "📋",
+    hype: "Stop #2 — Planner",
+    title: "Plan smart, not hard",
+    body: "Add assignments. Set difficulty + how much it's worth + your confidence. Smart Priority sorts them so you know EXACTLY what to do first. Finishing tasks = XP. 💪",
     route: "/planner",
   },
   {
-    icon: Calendar,
-    title: "Calendar — see the week ahead",
-    body: "All your due dates and study sessions in one calendar view. Click a day to add events. Avoid surprises by checking this before bed.",
+    icon: Calendar, emoji: "📅",
+    hype: "Stop #3 — Calendar",
+    title: "See the future",
+    body: "Every deadline and study session in one calendar. Click a day to add events. Check this before bed and never get blindsided again.",
     route: "/calendar",
   },
   {
-    icon: Target,
-    title: "Focus — where champions are made 🎯",
-    body: "Pomodoro-style focus timer. THIS earns the most XP in the app. Stay on the page — we detect tab-switches and pauses. 25-min sessions = sweet spot.",
+    icon: Target, emoji: "🎯",
+    hype: "Stop #4 — Focus",
+    title: "Where champions are made",
+    body: "Pomodoro timer = the BIGGEST XP source in the whole app. Stay on the page (we'll know if you cheat 😉). Try a 25-min sprint right after this tour.",
     route: "/focus",
   },
   {
-    icon: Brain,
-    title: "AI Tutor — your study sidekick 🧠",
-    body: "Ask anything school-related. The tutor TEACHES the concept (no direct answers — that'd be cheating), then quizzes you with 3 questions. Get them right → earn bonus XP. Try Voice Lab and Image Decoder too!",
+    icon: Brain, emoji: "🧠",
+    hype: "Stop #5 — AI Tutor",
+    title: "Your study sidekick",
+    body: "Ask anything school-related. The tutor TEACHES you (no answer-dumping — that's cheating), then quizzes you with 3 questions. Ace them = bonus XP. Voice Lab + Image Decoder live here too.",
     route: "/ai",
   },
   {
-    icon: MessageCircle,
-    title: "Chat — study together",
-    body: "Group chats and 1-on-1 DMs with friends. Send images, stickers, meet links. Group AI can answer questions for the whole crew.",
+    icon: MessageCircle, emoji: "💬",
+    hype: "Stop #6 — Chat",
+    title: "Study with friends",
+    body: "Group chats + 1-on-1 DMs. Send images, stickers, meet links. Group AI can answer for the whole crew at once. Way better than a study group on a Tuesday night.",
     route: "/chat",
   },
   {
-    icon: Users,
-    title: "Friends — build your crew",
-    body: "Send friend requests by email or username. Once accepted you can DM, see their stats, and compete on the weekly leaderboard.",
+    icon: Users, emoji: "🤝",
+    hype: "Stop #7 — Friends",
+    title: "Build your crew",
+    body: "Add friends by email or username. Once they accept, you can DM, see their stats, and battle on the weekly leaderboard.",
     route: "/friends",
   },
   {
-    icon: Trophy,
-    title: "Leaderboard — climb the ranks 🏆",
-    body: "Weekly rankings reset every Monday. We measure XP gained + focus minutes THIS WEEK only — fair for newcomers. Top 3 win bonus packs.",
+    icon: Trophy, emoji: "🏆",
+    hype: "Stop #8 — Leaderboard",
+    title: "Climb the ranks",
+    body: "Resets every Monday. We measure XP gained + focus minutes THIS WEEK only — fresh start for everyone. Top 3 win bonus packs each week.",
     route: "/leaderboard",
   },
   {
-    icon: Package,
-    title: "Packs — open mystery loot 🎁",
-    body: "Earn packs by leveling up, daily streaks, and ranking. Spin the rainbow wheel to reveal Common → Mythic rarity. Higher rarity = stronger buffs.",
+    icon: Package, emoji: "📦",
+    hype: "Stop #9 — Packs",
+    title: "Loot incoming",
+    body: "Earn packs from level-ups, daily streaks, and weekly rankings. Spin the rainbow wheel: Common → Rare → Epic → Legendary → Mythic. Higher rarity = stronger buff.",
     route: "/packs",
   },
   {
-    icon: Zap,
-    title: "Buffs — multiply your gains ⚡",
-    body: "Activate buffs from your inventory to multiply XP. Fair-play rules: 10-min focus required between activations, daily cap to keep it competitive.",
+    icon: Zap, emoji: "⚡",
+    hype: "Stop #10 — Buffs",
+    title: "Multiply your XP",
+    body: "Activate buffs from your inventory to multiply gains. Fair play: 10-min focus required between activations and a daily cap so it stays competitive.",
     route: "/buffs",
   },
   {
-    icon: User,
-    title: "Profile — flex your stats",
-    body: "Avatar, mastery heatmap by subject, all badges you've unlocked, and customization. Evolve from Student → Scholar → Mastermind → Cosmic Genius 🌌.",
+    icon: User, emoji: "🌌",
+    hype: "Stop #11 — Profile",
+    title: "Flex your stats",
+    body: "Avatar, mastery heatmap by subject, every badge you've unlocked, customization. Evolve: Student → Scholar → Mastermind → Cosmic Genius 🌌.",
     route: "/profile",
   },
   {
-    icon: HelpCircle,
-    title: "Help — never get stuck",
-    body: "FAQ, tips, and you can replay this tour anytime. Hover over any sidebar tab to see what it does.",
+    icon: HelpCircle, emoji: "💡",
+    hype: "Stop #12 — Help",
+    title: "Never stuck for long",
+    body: "FAQ, tips, and you can replay this tour anytime. Hover any sidebar tab to see what it does. Stuck? Help has your back.",
     route: "/help",
   },
   {
-    icon: Gift,
-    title: "Welcome gift: 3 free packs! 🎁",
-    body: "We're dropping 3 mystery packs into your inventory right now. Head to Packs anytime to spin and reveal your loot. Now go crush it. 🚀",
+    icon: Gift, emoji: "🎁",
+    hype: "Tour complete!",
+    title: "Here are your 3 free packs!",
+    body: "We're dropping 3 mystery packs into your inventory right now. Spin the wheel on the Packs tab whenever you're ready. Now go become a Cosmic Genius. 🌟",
     cta: "Claim my 3 packs",
     route: "/packs",
   },
@@ -128,6 +145,7 @@ export const OnboardingTour = () => {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [granting, setGranting] = useState(false);
+  const [animKey, setAnimKey] = useState(0);
 
   // Detect first-time user
   useEffect(() => {
@@ -144,10 +162,12 @@ export const OnboardingTour = () => {
   const current = useMemo(() => STEPS[step], [step]);
   const Icon = current.icon;
   const isLast = step === STEPS.length - 1;
+  const isFirst = step === 0;
 
-  // Navigate to the step's route when it changes
+  // Navigate when step changes + retrigger entry animation
   useEffect(() => {
     if (!open) return;
+    setAnimKey((k) => k + 1);
     if (current.route && location.pathname !== current.route) {
       navigate(current.route);
     }
@@ -196,11 +216,8 @@ export const OnboardingTour = () => {
     if (isLast) finish();
     else setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
-
   const handleBack = () => setStep((s) => Math.max(0, s - 1));
-
   const handleSkip = async () => {
-    // Mark as onboarded + grant packs (we don't punish skippers — first-day delight matters)
     sessionStorage.setItem(SKIP_FLAG, "1");
     await finish();
   };
@@ -208,61 +225,85 @@ export const OnboardingTour = () => {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && !granting) handleSkip(); }}>
       <DialogContent className="glass-strong max-w-md p-0 overflow-hidden border-0">
-        {/* Animated header band */}
-        <div className="relative h-32 bg-gradient-primary grid place-items-center overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,hsl(var(--accent)/0.4),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,hsl(var(--primary)/0.5),transparent_60%)] animate-pulse" />
-          <div className="relative h-20 w-20 rounded-3xl bg-background/20 backdrop-blur-md ring-2 ring-white/30 grid place-items-center shadow-glow">
-            <Icon className="h-10 w-10 text-primary-foreground" />
+        {/* Animated cosmic header band */}
+        <div className="relative h-36 bg-gradient-primary grid place-items-center overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,hsl(var(--accent)/0.5),transparent_60%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,hsl(var(--primary)/0.6),transparent_60%)] animate-pulse" />
+          {/* Drifting sparkles */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <span
+              key={`${animKey}-${i}`}
+              className="absolute h-1 w-1 rounded-full bg-white/80 animate-pulse"
+              style={{
+                left: `${(i * 13 + 7) % 100}%`,
+                top: `${(i * 23 + 11) % 100}%`,
+                animationDelay: `${i * 0.2}s`,
+              }}
+            />
+          ))}
+          <div
+            key={animKey}
+            className="relative h-24 w-24 rounded-3xl bg-background/20 backdrop-blur-md ring-2 ring-white/30 grid place-items-center shadow-glow animate-scale-in"
+          >
+            <span className="text-5xl">{current.emoji}</span>
           </div>
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Progress bar */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>Step {step + 1} of {STEPS.length}</span>
-              <span>{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full bg-gradient-primary transition-all duration-500"
-                style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
-              />
-            </div>
+          {/* Hype chip + progress */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded-full bg-primary/15 text-primary ring-1 ring-primary/30">
+              {current.hype ?? `Step ${step + 1}`}
+            </span>
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {step + 1} / {STEPS.length}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-gradient-primary transition-all duration-500"
+              style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+            />
           </div>
 
-          <h2 className="text-2xl font-bold gradient-text text-center leading-tight">{current.title}</h2>
-          <p className="text-sm text-muted-foreground text-center leading-relaxed">{current.body}</p>
+          <div key={`text-${animKey}`} className="space-y-2 animate-fade-in">
+            <h2 className="text-2xl font-bold gradient-text text-center leading-tight flex items-center justify-center gap-2">
+              <Icon className="h-5 w-5 text-primary shrink-0" />
+              {current.title}
+            </h2>
+            <p className="text-sm text-foreground/85 text-center leading-relaxed">{current.body}</p>
+          </div>
 
           <div className="flex items-center gap-2 pt-2">
-            {step > 0 && !isLast && (
+            {!isFirst && !isLast && (
               <Button variant="ghost" size="icon" onClick={handleBack} disabled={granting} aria-label="Back">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
             {!isLast && (
               <Button variant="ghost" onClick={handleSkip} className="flex-1" disabled={granting}>
-                Skip tour
+                Skip · grab packs
               </Button>
             )}
             <Button
               onClick={handleNext}
               disabled={granting}
-              className={`bg-gradient-primary text-primary-foreground shadow-glow ${isLast ? "w-full h-12 text-base" : "flex-1"}`}
+              className={`bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 ${isLast ? "w-full h-12 text-base" : "flex-1"}`}
             >
               {granting ? (
                 <span className="flex items-center gap-2"><Sparkles className="h-4 w-4 animate-spin" /> Granting…</span>
               ) : isLast ? (
                 <span className="flex items-center gap-2"><Check className="h-4 w-4" /> {current.cta}</span>
               ) : (
-                <span className="flex items-center gap-2">Next <ChevronRight className="h-4 w-4" /></span>
+                <span className="flex items-center gap-2">
+                  {current.cta ?? "Next"} <ChevronRight className="h-4 w-4" />
+                </span>
               )}
             </Button>
           </div>
 
           <p className="text-[10px] text-center text-muted-foreground">
-            Press Esc anytime to skip — you'll still get your 3 packs.
+            Press Esc anytime — your 3 packs are guaranteed. 🎁
           </p>
         </div>
       </DialogContent>
