@@ -90,13 +90,15 @@ export const AppLayout = () => {
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-strong border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <img
-            src={logoUrl}
-            alt="Study Bud AI logo"
-            className="h-9 w-9 sm:h-10 sm:w-10 object-contain drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)] shrink-0"
-            width={40}
-            height={40}
-          />
+          <div className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl overflow-hidden ring-1 ring-white/15 shadow-glow shrink-0">
+            <img
+              src={logoUrl}
+              alt="Study Bud AI logo"
+              className="absolute inset-0 h-full w-full object-cover scale-[1.35]"
+              width={40}
+              height={40}
+            />
+          </div>
           <div className="leading-tight min-w-0">
             <div className="font-semibold tracking-tight truncate text-sm sm:text-base">Study Bud AI</div>
             <div className="hidden sm:flex items-center gap-1.5">
