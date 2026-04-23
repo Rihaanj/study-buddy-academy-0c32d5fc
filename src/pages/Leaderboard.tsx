@@ -36,7 +36,7 @@ export default function Leaderboard() {
           <h1 className="text-2xl font-bold gradient-text flex items-center gap-2">
             <Trophy className="h-6 w-6" /> Leaderboard
           </h1>
-          <p className="text-muted-foreground text-sm">Compete weekly against your friend circle — only this week's progress counts.</p>
+          <p className="text-muted-foreground text-sm">Compete weekly against your friend circle.</p>
         </div>
 
         <section className="glass p-8 text-center space-y-4">
@@ -81,7 +81,7 @@ export default function Leaderboard() {
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2">
           <Trophy className="h-6 w-6" /> Leaderboard
         </h1>
-        <p className="text-muted-foreground text-sm">Ranked by this week's XP + focus growth. Your lifetime XP is never reset.</p>
+        <p className="text-muted-foreground text-sm">Weekly ranking across your friend circle.</p>
       </div>
       <FriendsLeaderboard />
     </div>
