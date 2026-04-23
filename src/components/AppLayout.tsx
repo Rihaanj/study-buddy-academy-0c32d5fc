@@ -137,8 +137,8 @@ export const AppLayout = () => {
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3 py-2 rounded-xl transition group ${
                         isActive
-                          ? "bg-gradient-primary text-primary-foreground shadow-glow ring-1 ring-white/20"
-                          : "hover:bg-white/[0.07] text-muted-foreground hover:text-foreground hover:ring-1 hover:ring-white/10"
+                          ? "bg-gradient-primary text-primary-foreground shadow-glow ring-1 ring-white/20 font-semibold"
+                          : "hover:bg-white/[0.08] text-foreground/85 hover:text-foreground hover:ring-1 hover:ring-white/10"
                       }`
                     }
                   >
@@ -179,7 +179,7 @@ export const AppLayout = () => {
                 end={t.end}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] ${
-                    isActive ? "text-primary bg-primary/10" : "text-muted-foreground"
+                    isActive ? "text-primary bg-primary/15 font-semibold" : "text-foreground/80"
                   }`
                 }
               >

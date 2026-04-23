@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Starfield } from "@/components/Starfield";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Brain, Target, Trophy, ArrowRight } from "lucide-react";
+import logoUrl from "@/assets/logo.png";
 
 const features = [
   { icon: Brain, label: "AI Tutor" },
@@ -55,9 +56,9 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* Logo + brand */}
           <div className="text-center mb-8 animate-fade-in">
-            <div className="mx-auto h-20 w-20 rounded-3xl bg-gradient-primary grid place-items-center shadow-glow float relative">
+            <div className="mx-auto h-24 w-24 rounded-3xl grid place-items-center shadow-glow float relative ring-2 ring-white/20 overflow-hidden bg-gradient-primary">
               <div className="absolute inset-0 rounded-3xl bg-gradient-primary blur-xl opacity-50" />
-              <Sparkles className="h-10 w-10 text-primary-foreground relative" />
+              <img src={logoUrl} alt="Study Bud AI logo" className="relative h-20 w-20 object-cover rounded-2xl" width={80} height={80} />
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold mt-6 gradient-text tracking-tight">
               Study Bud AI
