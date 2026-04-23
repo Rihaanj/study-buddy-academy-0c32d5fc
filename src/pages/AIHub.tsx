@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AIResponse } from "@/components/AIResponse";
 import FollowUpGate from "@/components/FollowUpGate";
 import { BookOpen, FlaskConical, Repeat, ImageIcon, History, Loader2, Sparkles, ShieldAlert, Mic, Flame, Eye, Volume2, Square } from "lucide-react";
+import pawIcon from "@/assets/paw.png";
 import { toast } from "sonner";
 import { awardXp, getActiveXpMultiplier, computeTestXpDelta, type TestDifficulty } from "@/lib/gamification";
 import { trackAIUsage, awardBadge } from "@/lib/badges";
@@ -524,11 +525,13 @@ export default function AIHub() {
         <div className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-gradient-primary opacity-20 blur-3xl" />
         <div className="absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-secondary/30 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-primary grid place-items-center shadow-glow float">
-            <Sparkles className="h-6 w-6 text-primary-foreground" />
+          <div className="h-14 w-14 rounded-2xl bg-gradient-primary grid place-items-center shadow-glow float ring-2 ring-white/20">
+            <img src={pawIcon} alt="Study Bud AI paw mascot" className="h-9 w-9 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]" width={36} height={36} loading="lazy" />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold gradient-text">AI Hub</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold gradient-text flex items-center gap-2">
+              AI Hub <Sparkles className="h-4 w-4 text-accent animate-pulse" />
+            </h1>
             <p className="text-muted-foreground text-xs sm:text-sm">Tutor · tests · exam sim · vision · voice — earn XP by answering 3 follow-ups (max 1000 XP/day).</p>
           </div>
         </div>
