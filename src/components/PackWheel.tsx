@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
 import { secureRandom } from "@/lib/random";
 
 type Rarity = "common" | "rare" | "epic" | "legendary" | "mythic";
@@ -31,12 +30,29 @@ function buildSegments(): Segment[] {
   });
 }
 
-function buildGradient(segments: Segment[]) {
+/**
+ * Smooth rainbow gradient like the user's reference, blended with our theme rarities.
+ * Uses many intermediate stops for buttery transitions.
+ */
+function buildSmoothGradient(segments: Segment[]) {
   const stops: string[] = [];
-  for (const segment of segments) {
-    stops.push(`${segment.color} ${segment.start}deg ${segment.end}deg`);
-  }
-  return `conic-gradient(${stops.join(", ")})`;
+  // Soft rainbow base layer (matches reference) with theme accent hues
+  const rainbow = [
+    "hsl(217 91% 60%)",   // blue
+    "hsl(280 80% 60%)",   // purple
+    "hsl(310 95% 65%)",   // magenta
+    "hsl(0 90% 60%)",     // red
+    "hsl(38 95% 55%)",    // orange/amber
+    "hsl(60 90% 55%)",    // yellow
+    "hsl(140 70% 50%)",   // green
+    "hsl(180 80% 50%)",   // cyan
+    "hsl(217 91% 60%)",   // back to blue (closes loop)
+  ];
+  const step = 360 / (rainbow.length - 1);
+  rainbow.forEach((c, i) => {
+    stops.push(`${c} ${i * step}deg`);
+  });
+  return `conic-gradient(from 0deg, ${stops.join(", ")})`;
 }
 
 function pickLandingAngle(target: Segment) {
@@ -53,79 +69,90 @@ interface Props {
 
 export const PackWheel = ({ targetRarity, onDone }: Props) => {
   const [rotation, setRotation] = useState(0);
-  const size = 300;
+  const [spinning, setSpinning] = useState(false);
+  const size = 320;
   const segments = useMemo(() => buildSegments(), []);
-  const gradient = useMemo(() => buildGradient(segments), [segments]);
+  const gradient = useMemo(() => buildSmoothGradient(segments), [segments]);
 
   useEffect(() => {
-    const targetSegment = segments.find((segment) => segment.rarity === targetRarity) ?? segments[0];
+    const targetSegment = segments.find((s) => s.rarity === targetRarity) ?? segments[0];
     const landingAngle = pickLandingAngle(targetSegment);
     const finalRotation = 360 * (8 + Math.floor(secureRandom() * 4)) + (360 - landingAngle);
-    requestAnimationFrame(() => setRotation(finalRotation));
+    requestAnimationFrame(() => {
+      setSpinning(true);
+      setRotation(finalRotation);
+    });
     const t = window.setTimeout(onDone, 4500);
     return () => window.clearTimeout(t);
   }, [onDone, segments, targetRarity]);
 
   return (
-    <div className="relative mx-auto" style={{ width: size, height: size }}>
-      {/* Outer glow ring */}
-      <div className="absolute inset-[-12px] rounded-full bg-gradient-to-br from-primary/30 via-accent/20 to-fuchsia-500/30 blur-2xl opacity-70 animate-pulse" />
+    <div className="relative mx-auto" style={{ width: size, height: size + 24 }}>
+      {/* Outer ambient glow */}
+      <div className="absolute inset-[-24px] rounded-full bg-gradient-to-br from-primary/20 via-fuchsia-500/15 to-amber-400/20 blur-3xl opacity-70 animate-pulse pointer-events-none" />
 
-      {/* Pointer */}
-      <div className="absolute left-1/2 -translate-x-1/2 -top-3 z-20">
-        <div className="relative">
-          <div className="w-0 h-0 border-l-[14px] border-r-[14px] border-t-[24px] border-l-transparent border-r-transparent border-t-foreground drop-shadow-[0_0_12px_hsl(var(--primary))]" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-2 w-2 rounded-full bg-foreground shadow-[0_0_8px_hsl(var(--primary))]" />
-        </div>
+      {/* Vertical pointer pole (matches reference) */}
+      <div className="absolute left-1/2 -translate-x-1/2 -top-1 z-30 flex flex-col items-center pointer-events-none" style={{ height: size / 2 + 12 }}>
+        <div className="w-[3px] flex-1 bg-gradient-to-b from-white/90 to-white/40 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+        <div className="h-3 w-3 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.9)]" />
       </div>
 
       {/* Wheel body */}
       <div
-        className="relative w-full h-full rounded-full ring-[6px] ring-white/15 shadow-[0_20px_60px_-15px_hsl(var(--primary)/0.6)] overflow-hidden"
+        className="relative rounded-full ring-[6px] ring-white/15 shadow-[0_25px_70px_-15px_hsl(var(--primary)/0.7)] overflow-hidden"
         style={{
+          width: size,
+          height: size,
           transform: `rotate(${rotation}deg)`,
-          transition: "transform 4.2s cubic-bezier(0.15, 0.7, 0.18, 1)",
+          transition: spinning ? "transform 4.2s cubic-bezier(0.15, 0.7, 0.18, 1)" : "none",
           background: gradient,
+          // Subtle radial fade to white-ish center for the soft look in reference
+          backgroundImage: `radial-gradient(circle at center, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.05) 35%, transparent 60%), ${gradient}`,
         }}
       >
-        {/* Tick marks at segment boundaries */}
-        {segments.map((s) => (
-          <div
-            key={`tick-${s.rarity}`}
-            className="absolute left-1/2 top-1/2 origin-bottom"
-            style={{
-              width: 2,
-              height: "50%",
-              transform: `translateX(-50%) translateY(-100%) rotate(${s.end}deg)`,
-              background: "rgba(255,255,255,0.25)",
-            }}
-          />
-        ))}
+        {/* Inner darker ring for depth */}
+        <div className="absolute inset-[6px] rounded-full ring-1 ring-white/10" />
 
-        {/* Inner ring */}
-        <div className="absolute inset-[24px] rounded-full ring-1 ring-white/15 bg-background/30 backdrop-blur-[1px]" />
-
-        {/* Center hub */}
+        {/* Center SPIN drop (teardrop shape like reference) */}
         <div className="absolute inset-0 grid place-items-center pointer-events-none">
-          <div className="h-24 w-24 rounded-full grid place-items-center ring-2 ring-background bg-gradient-to-br from-background/95 to-background/70 shadow-2xl">
-            <Sparkles className="h-9 w-9 text-foreground/80 drop-shadow-lg animate-pulse" />
+          <div
+            className="relative grid place-items-center"
+            style={{
+              width: 96,
+              height: 110,
+              // Counter-rotate so SPIN stays upright
+              transform: `rotate(${-rotation}deg)`,
+              transition: spinning ? "transform 4.2s cubic-bezier(0.15, 0.7, 0.18, 1)" : "none",
+            }}
+          >
+            <div
+              className="absolute inset-0 bg-foreground/85 backdrop-blur-md ring-2 ring-white/20 shadow-2xl"
+              style={{
+                // Teardrop: round bottom, pointed top
+                borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
+                clipPath: "path('M 48 0 L 96 60 A 48 48 0 1 1 0 60 Z')",
+              }}
+            />
+            <span className="relative text-background font-bold tracking-[0.3em] text-xs select-none">
+              SPIN
+            </span>
           </div>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
+      <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
         {segments.map((segment) => (
           <div key={segment.rarity} className="flex items-center gap-1.5">
             <span
-              className="h-3 w-3 rounded-full ring-1 ring-white/30"
-              style={{ backgroundColor: segment.color, boxShadow: `0 0 12px ${segment.color}` }}
+              className="h-2.5 w-2.5 rounded-full ring-1 ring-white/30"
+              style={{ backgroundColor: segment.color, boxShadow: `0 0 10px ${segment.color}` }}
             />
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{segment.label}</span>
           </div>
         ))}
       </div>
-      <p className="text-center text-xs text-muted-foreground mt-2">Wherever the wheel lands is what you'll get.</p>
+      <p className="text-center text-xs text-muted-foreground mt-2">Wherever the wheel lands is your reward.</p>
     </div>
   );
 };
