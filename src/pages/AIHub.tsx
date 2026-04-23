@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AIResponse } from "@/components/AIResponse";
 import FollowUpGate from "@/components/FollowUpGate";
 import { BookOpen, FlaskConical, Repeat, ImageIcon, History, Loader2, Sparkles, ShieldAlert, Mic, Flame, Eye, Volume2, Square } from "lucide-react";
-import pawIcon from "@/assets/paw.png";
+import logoUrl from "@/assets/logo.png";
 import { toast } from "sonner";
 import { awardXp, getActiveXpMultiplier, computeTestXpDelta, type TestDifficulty } from "@/lib/gamification";
 import { trackAIUsage, awardBadge } from "@/lib/badges";
