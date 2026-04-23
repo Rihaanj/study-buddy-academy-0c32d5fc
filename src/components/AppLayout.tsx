@@ -100,10 +100,10 @@ export const AppLayout = () => {
             />
           </div>
           <div className="leading-tight min-w-0">
-            <div className="font-semibold tracking-tight truncate text-sm sm:text-base">Study Bud AI</div>
+            <div className="font-semibold tracking-tight truncate text-sm sm:text-base gradient-text">Study Bud AI</div>
             <div className="hidden sm:flex items-center gap-1.5">
               <span className="text-[9px] font-bold tracking-[0.2em] px-1.5 py-0.5 rounded-md bg-gradient-primary text-primary-foreground shadow-glow">RYJ</span>
-              <span className="text-[10px] text-muted-foreground">by Rihaan Yeswant Jain</span>
+              <span className="text-[10px] text-primary/80">by Rihaan Yeswant Jain</span>
             </div>
           </div>
         </NavLink>
@@ -139,14 +139,14 @@ export const AppLayout = () => {
                     end={t.end}
                     data-tour-tab={t.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-xl transition group relative ${
+                      `flex items-center gap-3 px-3 py-2 rounded-xl transition-all relative ${
                         isActive
                           ? "bg-gradient-primary text-primary-foreground shadow-glow ring-1 ring-white/30 font-semibold"
-                          : "text-foreground/95 hover:text-primary-foreground hover:bg-gradient-to-r hover:from-primary/30 hover:to-accent/30 hover:ring-1 hover:ring-primary/40"
+                          : "text-primary/85 hover:text-secondary hover:bg-gradient-to-r hover:from-primary/15 hover:to-secondary/15 hover:ring-1 hover:ring-secondary/40"
                       }`
                     }
                   >
-                    <t.icon className="h-4 w-4 shrink-0 text-primary-foreground/90" />
+                    <t.icon className={`h-4 w-4 shrink-0`} />
                     <span className="text-sm font-medium truncate">{t.label}</span>
                   </NavLink>
                 </TooltipTrigger>
@@ -183,7 +183,7 @@ export const AppLayout = () => {
                 end={t.end}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] ${
-                    isActive ? "text-primary bg-primary/15 font-semibold" : "text-foreground/80"
+                    isActive ? "text-primary-foreground bg-gradient-primary shadow-glow font-semibold" : "text-primary/80"
                   }`
                 }
               >

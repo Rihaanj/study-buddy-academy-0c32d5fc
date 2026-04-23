@@ -27,15 +27,15 @@ a[aria-label*="Lovable"] {
     --popover: 224 38% 9%;
     --popover-foreground: 210 40% 96%;
 
-    /* Neon accents */
-    --primary: 220 100% 65%;             /* neon blue */
+    /* Neon accents — pulled from the logo's cyan ↔ magenta cap */
+    --primary: 185 100% 60%;             /* logo cyan */
     --primary-foreground: 222 40% 6%;
-    --primary-glow: 220 100% 70%;
+    --primary-glow: 185 100% 70%;
 
-    --secondary: 270 90% 65%;            /* neon purple */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 320 95% 65%;            /* logo magenta/pink */
+    --secondary-foreground: 222 40% 6%;
 
-    --accent: 185 100% 55%;              /* cyan */
+    --accent: 285 95% 70%;               /* mid-blend violet (between cyan & magenta) */
     --accent-foreground: 222 40% 6%;
 
     --muted: 224 24% 16%;
@@ -49,30 +49,30 @@ a[aria-label*="Lovable"] {
 
     --border: 224 30% 18%;
     --input: 224 30% 14%;
-    --ring: 220 100% 65%;
+    --ring: 185 100% 60%;
 
     --radius: 1rem;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 100% 65%), hsl(270 90% 65%));
-    --gradient-cosmic: linear-gradient(135deg, hsl(230 80% 25%), hsl(270 80% 35%) 50%, hsl(220 90% 45%));
-    --gradient-nebula: radial-gradient(ellipse at top, hsl(270 80% 30% / 0.45), transparent 60%),
-                       radial-gradient(ellipse at bottom, hsl(220 90% 30% / 0.35), transparent 60%);
+    /* Gradients — cyan → violet → magenta, mirroring the cap */
+    --gradient-primary: linear-gradient(135deg, hsl(185 100% 60%), hsl(285 95% 65%) 50%, hsl(320 95% 65%));
+    --gradient-cosmic: linear-gradient(135deg, hsl(195 80% 25%), hsl(285 80% 35%) 50%, hsl(320 90% 45%));
+    --gradient-nebula: radial-gradient(ellipse at top, hsl(320 80% 30% / 0.4), transparent 60%),
+                       radial-gradient(ellipse at bottom, hsl(185 90% 30% / 0.35), transparent 60%);
 
     /* Shadows */
-    --shadow-glow: 0 0 40px hsl(220 100% 65% / 0.35);
-    --shadow-glow-purple: 0 0 40px hsl(270 90% 65% / 0.35);
+    --shadow-glow: 0 0 40px hsl(185 100% 60% / 0.4);
+    --shadow-glow-purple: 0 0 40px hsl(320 95% 65% / 0.4);
     --shadow-card: 0 10px 40px -10px hsl(230 80% 5% / 0.6);
 
     /* Sidebar (unused but kept) */
     --sidebar-background: 224 38% 8%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 220 100% 65%;
+    --sidebar-foreground: 185 100% 75%;
+    --sidebar-primary: 185 100% 60%;
     --sidebar-primary-foreground: 222 40% 6%;
-    --sidebar-accent: 224 30% 14%;
-    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-accent: 320 95% 65%;
+    --sidebar-accent-foreground: 222 40% 6%;
     --sidebar-border: 224 30% 18%;
-    --sidebar-ring: 220 100% 65%;
+    --sidebar-ring: 185 100% 60%;
   }
 
   .dark {
