@@ -9,10 +9,29 @@ import { Button } from "./ui/button";
 import { UserAvatar } from "./UserAvatar";
 import { XpBar } from "./XpBar";
 import { ReviewPrompt } from "./ReviewPrompt";
+import { OnboardingTour } from "./OnboardingTour";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { markTabVisited } from "@/lib/badges";
 import { runDueDateNotifier } from "@/lib/notifications";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+const TAB_HINTS: Record<string, string> = {
+  "/": "Your dashboard — quick stats, today's tasks, and shortcuts.",
+  "/planner": "Add assignments and tasks. Smart priority sorts what to do first.",
+  "/calendar": "See deadlines, study sessions, and events on a calendar view.",
+  "/focus": "Pomodoro-style focus timer. Earns the most XP in the app.",
+  "/chat": "Group study chats and DMs with friends. Send images, stickers & meet links.",
+  "/friends": "Add friends, accept requests, and unlock 1-on-1 DMs.",
+  "/leaderboard": "Weekly rankings. Top 3 win bonus packs every Monday.",
+  "/ai": "Your AI tutor: Socratic teaching, exam sim, image decoder, voice lab.",
+  "/packs": "Open mystery packs to win XP buffs and rare items.",
+  "/buffs": "Activate buffs to multiply your XP. Need 10 min focus between uses.",
+  "/profile": "Your stats, mastery heatmap, badges, and customization.",
+  "/help": "FAQ, tips, and a refresher of the welcome tour.",
+  "/reviews": "Admin: read all submitted reviews.",
+  "/cheats": "Admin: review flagged AI requests.",
+};
 
 const baseTabs = [
   { to: "/", label: "Home", icon: Home, end: true },
