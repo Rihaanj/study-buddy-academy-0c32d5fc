@@ -90,13 +90,15 @@ export const AppLayout = () => {
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-strong border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <img
-            src={logoUrl}
-            alt="Study Bud AI logo"
-            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl shadow-glow ring-1 ring-white/10 object-cover shrink-0"
-            width={36}
-            height={36}
-          />
+          <div className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl overflow-hidden ring-1 ring-white/15 shadow-glow shrink-0">
+            <img
+              src={logoUrl}
+              alt="Study Bud AI logo"
+              className="absolute inset-0 h-full w-full object-cover scale-[1.35]"
+              width={40}
+              height={40}
+            />
+          </div>
           <div className="leading-tight min-w-0">
             <div className="font-semibold tracking-tight truncate text-sm sm:text-base">Study Bud AI</div>
             <div className="hidden sm:flex items-center gap-1.5">
@@ -124,9 +126,10 @@ export const AppLayout = () => {
       {/* Desktop side nav + content */}
       <div className="flex-1 flex">
         <nav className="hidden md:flex flex-col gap-1 p-3 w-52 lg:w-56 border-r border-white/10 glass-strong relative overflow-hidden">
-          {/* Subtle nebula accent so the sidebar isn't a flat dark stripe */}
-          <div aria-hidden className="pointer-events-none absolute -top-20 -left-10 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
-          <div aria-hidden className="pointer-events-none absolute bottom-0 -right-10 h-48 w-48 rounded-full bg-secondary/20 blur-3xl" />
+          {/* Cosmic nebula accents */}
+          <div aria-hidden className="pointer-events-none absolute -top-20 -left-10 h-56 w-56 rounded-full bg-primary/25 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute bottom-0 -right-10 h-48 w-48 rounded-full bg-accent/25 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-32 w-32 rounded-full bg-secondary/20 blur-3xl" />
           <div className="relative flex flex-col gap-1">
             {tabs.map((t) => (
               <Tooltip key={t.to} delayDuration={300}>
@@ -134,15 +137,16 @@ export const AppLayout = () => {
                   <NavLink
                     to={t.to}
                     end={t.end}
+                    data-tour-tab={t.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-xl transition group ${
+                      `flex items-center gap-3 px-3 py-2 rounded-xl transition group relative ${
                         isActive
-                          ? "bg-gradient-primary text-primary-foreground shadow-glow ring-1 ring-white/20"
-                          : "hover:bg-white/[0.07] text-muted-foreground hover:text-foreground hover:ring-1 hover:ring-white/10"
+                          ? "bg-gradient-primary text-primary-foreground shadow-glow ring-1 ring-white/30 font-semibold"
+                          : "text-foreground/95 hover:text-primary-foreground hover:bg-gradient-to-r hover:from-primary/30 hover:to-accent/30 hover:ring-1 hover:ring-primary/40"
                       }`
                     }
                   >
-                    <t.icon className="h-4 w-4 shrink-0" />
+                    <t.icon className="h-4 w-4 shrink-0 text-primary-foreground/90" />
                     <span className="text-sm font-medium truncate">{t.label}</span>
                   </NavLink>
                 </TooltipTrigger>
@@ -179,7 +183,7 @@ export const AppLayout = () => {
                 end={t.end}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] ${
-                    isActive ? "text-primary bg-primary/10" : "text-muted-foreground"
+                    isActive ? "text-primary bg-primary/15 font-semibold" : "text-foreground/80"
                   }`
                 }
               >
