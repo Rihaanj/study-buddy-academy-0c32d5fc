@@ -690,6 +690,7 @@ export type Database = {
           avatar: Json
           avatar_url: string | null
           created_at: string
+          current_focus_started_at: string | null
           email: string | null
           focus_streak: number
           id: string
@@ -713,6 +714,7 @@ export type Database = {
           avatar?: Json
           avatar_url?: string | null
           created_at?: string
+          current_focus_started_at?: string | null
           email?: string | null
           focus_streak?: number
           id?: string
@@ -736,6 +738,7 @@ export type Database = {
           avatar?: Json
           avatar_url?: string | null
           created_at?: string
+          current_focus_started_at?: string | null
           email?: string | null
           focus_streak?: number
           id?: string
