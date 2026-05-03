@@ -37,9 +37,11 @@ export async function classifyCheatIntent(prompt: string): Promise<string | null
   if (obvious) return obvious;
   if ((prompt || "").trim().length < 3) return null;
   try {
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const r = await fetch(FN_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
       body: JSON.stringify({ mode: "check-cheat", prompt }),
     });
     if (!r.ok) return null;

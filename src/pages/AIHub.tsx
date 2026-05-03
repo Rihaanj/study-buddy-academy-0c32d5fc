@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AIResponse } from "@/components/AIResponse";
 import FollowUpGate from "@/components/FollowUpGate";
 import { BookOpen, FlaskConical, Repeat, ImageIcon, History, Loader2, Sparkles, ShieldAlert, Mic, Flame, Eye, Volume2, Square } from "lucide-react";
-import logoUrl from "@/assets/logo.png";
+const logoUrl = "/icons/icon-512.png";
 import { toast } from "sonner";
 import { awardXp, getActiveXpMultiplier, computeTestXpDelta, type TestDifficulty } from "@/lib/gamification";
 import { trackAIUsage, awardBadge } from "@/lib/badges";
@@ -21,6 +21,11 @@ import { streamAI, logAiHistory } from "@/lib/aiHub";
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-tts`;
 const STT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-stt`;
+async function aiAuthHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY };
+}
 const aiHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` };
 
 // ===================== TUTOR (with Socratic / Analogy / Prereqs sub-modes + 3-Q gate) =====================
@@ -343,8 +348,8 @@ function VisualDecoder() {
     const path = `${user.id}/study-${Date.now()}-${safe}`;
     const { error } = await supabase.storage.from("chat-images").upload(path, file, { contentType: file.type });
     if (error) { toast.error(error.message); return; }
-    const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
-    setImageUrl(pub.publicUrl);
+    const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60);
+    setImageUrl(signed?.signedUrl ?? "");
     setTopicLabel(file.name.replace(/\.[^.]+$/, "").slice(0, 60));
   };
 
@@ -525,8 +530,9 @@ export default function AIHub() {
         <div className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-gradient-primary opacity-20 blur-3xl" />
         <div className="absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-secondary/30 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <div className="relative h-14 w-14 rounded-2xl bg-gradient-primary shadow-glow float ring-2 ring-white/20 overflow-hidden shrink-0">
-            <img src={logoUrl} alt="Study Bud AI logo" className="absolute inset-0 h-full w-full object-cover scale-[1.35]" width={56} height={56} loading="lazy" />
+          <div className="relative h-14 w-14 grid place-items-center shrink-0 float">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-primary opacity-50 blur-xl" />
+            <img src={logoUrl} alt="Study Bud AI logo" className="relative h-full w-full object-contain drop-shadow-[0_0_18px_hsl(var(--primary)/0.7)]" width={56} height={56} loading="lazy" />
           </div>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold gradient-text flex items-center gap-2">

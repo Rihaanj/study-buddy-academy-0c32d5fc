@@ -235,8 +235,8 @@ export default function Chat() {
       upsert: false,
     });
     if (error) { toast.error(`Upload failed: ${error.message}`); return; }
-    const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
-    await insertMessage({ image_url: pub.publicUrl });
+    const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60 * 24 * 7);
+    await insertMessage({ image_url: signed?.signedUrl ?? path });
     toast.success("Photo sent");
   };
 
@@ -257,11 +257,12 @@ export default function Chat() {
       const path = `${user.id}/group-${active.id}-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("chat-images").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
-      const { error: dbErr } = await supabase.from("groups").update({ image_url: pub.publicUrl }).eq("id", active.id);
+      const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const url = signed?.signedUrl ?? path;
+      const { error: dbErr } = await supabase.from("groups").update({ image_url: url }).eq("id", active.id);
       if (dbErr) throw dbErr;
-      setActive((a: any) => ({ ...a, image_url: pub.publicUrl }));
-      setGroups((gs) => gs.map((g) => g.id === active.id ? { ...g, image_url: pub.publicUrl } : g));
+      setActive((a: any) => ({ ...a, image_url: url }));
+      setGroups((gs) => gs.map((g) => g.id === active.id ? { ...g, image_url: url } : g));
       toast.success("Group picture updated");
     } catch (e: any) {
       toast.error(e.message ?? "Upload failed");
@@ -293,9 +294,11 @@ export default function Chat() {
     // Add placeholder assistant msg
     setAiMessages((m) => [...m, { role: "assistant", content: "" }]);
     try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const r = await fetch(GROUP_AI_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
         body: JSON.stringify({ messages: newMsgs }),
       });
       if (r.status === 429) { toast.error("Rate limited — try again shortly."); setAiBusy(false); return; }
