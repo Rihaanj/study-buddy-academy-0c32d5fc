@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Home, ListChecks, Timer, MessageCircle, Sparkles, LogOut, Calendar, Package, Zap, Users, Star, User, HelpCircle, Trophy, ShieldAlert } from "lucide-react";
-import logoUrl from "@/assets/logo.png";
+const logoUrl = "/icons/icon-512.png";
 import { Starfield } from "./Starfield";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -90,11 +90,11 @@ export const AppLayout = () => {
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-strong border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl overflow-hidden ring-1 ring-white/15 shadow-glow shrink-0">
+          <div className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl shadow-glow shrink-0 grid place-items-center">
             <img
               src={logoUrl}
               alt="Study Bud AI logo"
-              className="absolute inset-0 h-full w-full object-cover scale-[1.35]"
+              className="h-full w-full object-contain drop-shadow-[0_0_10px_hsl(var(--primary)/0.6)]"
               width={40}
               height={40}
             />
@@ -139,14 +139,14 @@ export const AppLayout = () => {
                     end={t.end}
                     data-tour-tab={t.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-xl transition group relative ${
+                      `flex items-center gap-3 px-3 py-2 rounded-xl transition group relative text-white ${
                         isActive
-                          ? "bg-gradient-primary text-primary-foreground shadow-glow ring-1 ring-white/30 font-semibold"
-                          : "text-foreground/95 hover:text-primary-foreground hover:bg-gradient-to-r hover:from-primary/30 hover:to-accent/30 hover:ring-1 hover:ring-primary/40"
+                          ? "bg-gradient-primary shadow-glow ring-1 ring-white/30 font-semibold"
+                          : "hover:bg-gradient-to-r hover:from-primary/30 hover:to-accent/30 hover:ring-1 hover:ring-primary/40"
                       }`
                     }
                   >
-                    <t.icon className="h-4 w-4 shrink-0 text-primary-foreground/90" />
+                    <t.icon className="h-4 w-4 shrink-0 text-white" />
                     <span className="text-sm font-medium truncate">{t.label}</span>
                   </NavLink>
                 </TooltipTrigger>
@@ -182,8 +182,8 @@ export const AppLayout = () => {
                 to={t.to}
                 end={t.end}
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] ${
-                    isActive ? "text-primary bg-primary/15 font-semibold" : "text-foreground/80"
+                  `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] text-white ${
+                    isActive ? "bg-primary/25 font-semibold ring-1 ring-primary/40" : "text-white/85"
                   }`
                 }
               >
