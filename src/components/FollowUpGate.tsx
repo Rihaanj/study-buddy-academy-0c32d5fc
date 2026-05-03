@@ -32,41 +32,62 @@ export default function FollowUpGate({ topic, context, subject = null, onComplet
   const [xpAwarded, setXpAwarded] = useState<number | null>(null);
   const requested = useRef(false);
 
+  const loadQs = async () => {
+    setLoadingQs(true);
+    try {
+      const got = await generateFollowUps(topic, context);
+      setQs(got);
+    } finally {
+      setLoadingQs(false);
+    }
+  };
+
   useEffect(() => {
     if (requested.current) return;
     if (!topic.trim() || !context.trim()) return;
     requested.current = true;
-    (async () => {
-      setLoadingQs(true);
-      try {
-        const got = await generateFollowUps(topic, context);
-        setQs(got);
-      } finally {
-        setLoadingQs(false);
-      }
-    })();
+    loadQs();
   }, [topic, context]);
 
   const submit = async () => {
     if (!user || !qs) return;
+    if (answers.every((a) => !a.trim())) {
+      toast.error("Type at least one answer first.");
+      return;
+    }
     setGrading(true);
     try {
-      const verdicts = await Promise.all(qs.map((q, i) => gradeAnswer(q.question, q.expected, answers[i] || "")));
+      // Sequence calls (gateway rate-limits parallel requests)
+      const verdicts: { correct: boolean; feedback?: string; error?: boolean }[] = [];
+      for (let i = 0; i < qs.length; i++) {
+        const v = await gradeAnswer(qs[i].question, qs[i].expected, answers[i] || "");
+        verdicts.push(v);
+        if (i < qs.length - 1) await new Promise((r) => setTimeout(r, 350));
+      }
       setResults(verdicts);
-      const correctCount = verdicts.filter((v) => v.correct).length;
-      // Burn list for wrong ones
+
+      const gradedOk = verdicts.filter((v) => !v.error);
+      if (gradedOk.length === 0) {
+        toast.error("Couldn't reach the AI grader. Try submitting again in a moment.");
+        setResults(null);
+        return;
+      }
+
+      const correctCount = verdicts.filter((v) => v.correct && !v.error).length;
+      // Burn list only for confidently-wrong (not grading errors)
       for (let i = 0; i < verdicts.length; i++) {
-        if (!verdicts[i].correct) {
+        if (!verdicts[i].correct && !verdicts[i].error) {
           await addToBurnList(user.id, topic, qs[i].question, qs[i].expected, answers[i] || "");
         }
       }
-      // Mastery: count whole batch as one attempt per question
-      for (const v of verdicts) await bumpMastery(user.id, topic, subject, v.correct);
+      for (const v of verdicts) {
+        if (!v.error) await bumpMastery(user.id, topic, subject, v.correct);
+      }
 
       const { awarded, capped } = await awardGateXp(user.id, correctCount);
       setXpAwarded(awarded);
       if (awarded > 0) toast.success(`${correctCount}/3 correct · +${awarded} XP ⚡${capped ? " (daily cap)" : ""}`);
-      else if (correctCount === 0) toast.error("0/3 correct — no XP. Wrong ones added to your Burn List.");
+      else toast(`${correctCount}/3 correct — no XP this round. Wrong ones added to your Burn List.`);
       onComplete?.({ correct: correctCount, xp: awarded });
     } finally {
       setGrading(false);
@@ -81,7 +102,16 @@ export default function FollowUpGate({ topic, context, subject = null, onComplet
     );
   }
 
-  if (!qs || qs.length === 0) return null;
+  if (!qs || qs.length === 0) {
+    return (
+      <div className="glass p-4 flex items-center justify-between gap-3 text-sm">
+        <span className="text-muted-foreground">Couldn't generate the quick check. Try again?</span>
+        <Button size="sm" variant="outline" onClick={() => { requested.current = true; loadQs(); }}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   const submitted = !!results;
 
