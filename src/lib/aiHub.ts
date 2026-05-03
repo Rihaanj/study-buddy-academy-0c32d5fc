@@ -5,13 +5,20 @@ const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
 
 export type FollowUpQ = { question: string; expected: string };
 
-const aiHeaders = {
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-};
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  };
+}
 
 export async function streamAI({ body, onDelta }: { body: any; onDelta: (s: string) => void }) {
-  const resp = await fetch(FN_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify(body) });
+  const headers = await authHeaders();
+  const resp = await fetch(FN_URL, { method: "POST", headers, body: JSON.stringify(body) });
+  if (resp.status === 401) throw new Error("Please sign in again to use the AI.");
   if (resp.status === 429) throw new Error("Rate limited — try again shortly.");
   if (resp.status === 402) throw new Error("AI credits exhausted. Add funds in Lovable settings.");
   if (!resp.ok || !resp.body) throw new Error("AI request failed");
@@ -41,9 +48,10 @@ export async function streamAI({ body, onDelta }: { body: any; onDelta: (s: stri
 }
 
 export async function generateFollowUps(topic: string, context: string): Promise<FollowUpQ[]> {
+  const headers = await authHeaders();
   const r = await fetch(FN_URL, {
     method: "POST",
-    headers: aiHeaders,
+    headers,
     body: JSON.stringify({ mode: "followups", topic, prompt: context }),
   });
   if (!r.ok) return [];
@@ -51,21 +59,28 @@ export async function generateFollowUps(topic: string, context: string): Promise
   return (data.questions || []).slice(0, 3);
 }
 
-export async function gradeAnswer(question: string, expected: string, userAnswer: string): Promise<{ correct: boolean; feedback?: string }> {
+/**
+ * Grade a single answer. Returns {correct, feedback} on success, or
+ * {error: true} when grading itself failed (do NOT count this as wrong).
+ */
+export async function gradeAnswer(question: string, expected: string, userAnswer: string): Promise<{ correct: boolean; feedback?: string; error?: boolean }> {
   if (!userAnswer.trim()) return { correct: false, feedback: "No answer given." };
-  const r = await fetch(FN_URL, {
-    method: "POST",
-    headers: aiHeaders,
-    body: JSON.stringify({ mode: "grade", question, expected, userAnswer }),
-  });
-  if (!r.ok) return { correct: false, feedback: "Could not grade." };
-  return await r.json();
+  try {
+    const headers = await authHeaders();
+    const r = await fetch(FN_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ mode: "grade", question, expected, userAnswer }),
+    });
+    if (r.status === 429 || r.status === 402 || !r.ok) return { correct: false, error: true, feedback: "Couldn't grade — try again." };
+    const j = await r.json();
+    if (typeof j.correct !== "boolean") return { correct: false, error: true, feedback: "Couldn't grade — try again." };
+    return { correct: !!j.correct, feedback: j.feedback };
+  } catch {
+    return { correct: false, error: true, feedback: "Couldn't grade — try again." };
+  }
 }
 
-/**
- * Compute scaled XP based on the 3-question gate result.
- * 0/3 = 0 XP, 1/3 = 5 XP, 2/3 = 10 XP, 3/3 = 20 XP.
- */
 export function gateXp(correctCount: number): number {
   return [0, 5, 10, 20][Math.max(0, Math.min(3, correctCount))] ?? 0;
 }
@@ -83,21 +98,18 @@ export async function logAiHistory(userId: string, kind: string, topic: string |
   await (supabase.from("ai_history") as any).insert({ user_id: userId, kind, topic, prompt, metadata });
 }
 
-/** Push wrong answer onto burn list (for re-quizzing). */
 export async function addToBurnList(userId: string, topic: string | null, question: string, expected: string, userAnswer: string) {
   await (supabase.from("burn_list") as any).insert({
     user_id: userId, topic, question, expected_answer: expected, user_answer: userAnswer,
   });
 }
 
-/** Update topic mastery: +1 attempt, +1 correct (if correct), recompute mastery_pct. */
 export async function bumpMastery(userId: string, topic: string, subject: string | null, correct: boolean) {
   const { data: existing } = await (supabase.from("topic_mastery") as any)
     .select("attempts, correct").eq("user_id", userId).eq("topic", topic).maybeSingle();
   const attempts = (existing?.attempts ?? 0) + 1;
   const correctCount = (existing?.correct ?? 0) + (correct ? 1 : 0);
   const mastery_pct = Math.round((correctCount / Math.max(1, attempts)) * 100);
-  // Spaced-repetition: next review intervals (days)
   const intervalDays = correct ? Math.min(14, Math.ceil(attempts * 1.5)) : 1;
   const next_review_at = new Date(Date.now() + intervalDays * 86400000).toISOString();
   await (supabase.from("topic_mastery") as any).upsert({
