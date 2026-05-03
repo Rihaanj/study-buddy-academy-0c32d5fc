@@ -33,11 +33,12 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
     const elapsedSec = duration - remaining;
     const minutes = Math.max(1, Math.round(elapsedSec / 60));
     if (!user) { setDuration(0); setRemaining(0); return; }
+    // Clear in-flight focus marker
+    await supabase.from("profiles").update({ current_focus_started_at: null } as any).eq("user_id", user.id);
     if (completed || elapsedSec >= 60) {
       const baseXp = minutes * 2;
       const buffMult = await getActiveXpMultiplier(user.id);
       const xp = Math.round(baseXp * buffMult);
-      // integrity_score column still exists in DB — just always store 100
       await supabase.from("focus_sessions").insert({
         user_id: user.id, duration_minutes: minutes, integrity_score: 100, xp_earned: xp,
       });
@@ -53,6 +54,10 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
   const start = useCallback((minutes: number) => {
     const sec = minutes * 60;
     setDuration(sec); setRemaining(sec); setRunning(true);
+    // Mark in-flight focus so buff cooldown counts in real time
+    if (user) {
+      supabase.from("profiles").update({ current_focus_started_at: new Date().toISOString() } as any).eq("user_id", user.id);
+    }
     if (intervalRef.current) window.clearInterval(intervalRef.current);
     intervalRef.current = window.setInterval(() => {
       setRemaining((r) => {
@@ -60,7 +65,7 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
         return r - 1;
       });
     }, 1000);
-  }, [stop]);
+  }, [stop, user]);
 
   return (
     <Ctx.Provider value={{ running, remaining, duration, start, stop }}>
