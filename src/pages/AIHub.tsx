@@ -21,6 +21,11 @@ import { streamAI, logAiHistory } from "@/lib/aiHub";
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-tts`;
 const STT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-stt`;
+async function aiAuthHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY };
+}
 const aiHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` };
 
 // ===================== TUTOR (with Socratic / Analogy / Prereqs sub-modes + 3-Q gate) =====================
@@ -343,8 +348,8 @@ function VisualDecoder() {
     const path = `${user.id}/study-${Date.now()}-${safe}`;
     const { error } = await supabase.storage.from("chat-images").upload(path, file, { contentType: file.type });
     if (error) { toast.error(error.message); return; }
-    const { data: pub } = supabase.storage.from("chat-images").getPublicUrl(path);
-    setImageUrl(pub.publicUrl);
+    const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60);
+    setImageUrl(signed?.signedUrl ?? "");
     setTopicLabel(file.name.replace(/\.[^.]+$/, "").slice(0, 60));
   };
 
