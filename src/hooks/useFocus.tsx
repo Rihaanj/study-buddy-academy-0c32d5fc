@@ -56,17 +56,26 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
   const start = useCallback((minutes: number) => {
     const sec = minutes * 60;
     setDuration(sec); setRemaining(sec); setRunning(true);
+    endAtRef.current = Date.now() + sec * 1000;
     // Mark in-flight focus so buff cooldown counts in real time
     if (user) {
       supabase.from("profiles").update({ current_focus_started_at: new Date().toISOString() } as any).eq("user_id", user.id);
     }
     if (intervalRef.current) window.clearInterval(intervalRef.current);
+    // Tick on wall-clock so timer matches real time even when tab is backgrounded
     intervalRef.current = window.setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) { window.clearInterval(intervalRef.current!); intervalRef.current = null; setRunning(false); stop(true); return 0; }
-        return r - 1;
-      });
-    }, 1000);
+      const end = endAtRef.current;
+      if (end == null) return;
+      const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+      setRemaining(left);
+      if (left <= 0) {
+        window.clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        endAtRef.current = null;
+        setRunning(false);
+        stop(true);
+      }
+    }, 250);
   }, [stop, user]);
 
   return (
