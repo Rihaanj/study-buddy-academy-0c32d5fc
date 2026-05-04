@@ -56,9 +56,9 @@ export default function Login() {
         <div className="w-full max-w-md">
           {/* Logo + brand */}
           <div className="text-center mb-8 animate-fade-in">
-            <div className="mx-auto h-28 w-28 grid place-items-center shadow-glow float relative">
-              <div className="absolute inset-0 rounded-3xl bg-gradient-primary blur-2xl opacity-60" />
-              <img src={logoUrl} alt="Study Bud AI logo" className="relative h-full w-full object-contain drop-shadow-[0_0_30px_hsl(var(--primary)/0.7)]" width={112} height={112} />
+            <div className="mx-auto h-28 w-28 grid place-items-center shadow-glow float relative rounded-[2rem] bg-gradient-to-br from-primary/25 to-accent/20">
+              <div className="absolute inset-0 rounded-[2rem] bg-gradient-primary blur-2xl opacity-50" />
+              <img src={logoUrl} alt="Study Bud AI logo" className="relative h-[82%] w-[82%] object-contain drop-shadow-[0_0_30px_hsl(var(--primary)/0.7)]" width={112} height={112} />
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold mt-6 gradient-text tracking-tight">
               Study Bud AI
