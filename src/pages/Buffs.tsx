@@ -121,12 +121,15 @@ export default function Buffs() {
     })();
   }, [active]);
 
-  // Server-side guard. Single in-flight activation prevents double-clicks during round-trip.
+  // Cooldowns: per-card 10s lockout after click, single in-flight guard.
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({}); // id -> unlockMs
 
   const activate = async (b: InvBuff) => {
     if (!user || activatingId) return;
+    if ((cooldowns[b.id] ?? 0) > Date.now()) return;
     setActivatingId(b.id);
+    setCooldowns((c) => ({ ...c, [b.id]: Date.now() + 10_000 }));
     try {
       const { data, error } = await supabase.rpc("activate_inventory_buff", { _buff_id: b.id });
       if (error) {
@@ -141,6 +144,32 @@ export default function Buffs() {
       setActivatingId(null);
     }
   };
+
+  // Reward: every 5 minutes of having any active timed buff, grant a free pack.
+  // Uses localStorage to persist last-grant timestamp across reloads, and only fires
+  // while at least one active_buff exists for the user.
+  useEffect(() => {
+    if (!user) return;
+    const key = `buff-pack-reward:${user.id}`;
+    const tryGrant = async () => {
+      const hasActive = active.some((b) => !b.expires_at || new Date(b.expires_at).getTime() > Date.now());
+      if (!hasActive) return;
+      const last = Number(localStorage.getItem(key) || "0");
+      const now = Date.now();
+      if (now - last < 5 * 60_000) return;
+      localStorage.setItem(key, String(now));
+      const rarities: Array<"common" | "rare" | "epic" | "legendary" | "mythic"> = ["common","common","rare","rare","epic","legendary","mythic"];
+      const rarity = rarities[Math.floor(Math.random() * rarities.length)];
+      const { error } = await supabase.from("inventory").insert({
+        user_id: user.id, item_type: "pack", item_key: "buff_pack", rarity,
+        metadata: { opened: false, source: "active_buff_reward" } as any,
+      } as any);
+      if (!error) toast.success("🎁 Active-buff reward: +1 pack!", { description: "Open it in the Packs tab." });
+    };
+    tryGrant();
+    const t = window.setInterval(tryGrant, 30_000);
+    return () => window.clearInterval(t);
+  }, [user?.id, active]);
 
   return (
     <div className="space-y-6">
