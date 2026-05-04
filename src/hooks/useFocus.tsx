@@ -26,10 +26,12 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
   const [remaining, setRemaining] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const endAtRef = useRef<number | null>(null); // wall-clock ms when timer ends
 
   const stop = useCallback(async (completed = false) => {
     setRunning(false);
     if (intervalRef.current) { window.clearInterval(intervalRef.current); intervalRef.current = null; }
+    endAtRef.current = null;
     const elapsedSec = duration - remaining;
     const minutes = Math.max(1, Math.round(elapsedSec / 60));
     if (!user) { setDuration(0); setRemaining(0); return; }
