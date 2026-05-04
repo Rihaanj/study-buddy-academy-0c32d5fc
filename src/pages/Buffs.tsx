@@ -146,7 +146,7 @@ export default function Buffs() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2"><Sparkles className="h-6 w-6" /> Buffs</h1>
-        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP. Max 3 active · 4-second cooldown · 10 minutes of focused study required between activations.</p>
+        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP. Max 3 active · 10-second cooldown between activations · While a buff is active you earn a free pack every 5 minutes.</p>
       </div>
 
       <section>
