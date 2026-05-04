@@ -121,12 +121,15 @@ export default function Buffs() {
     })();
   }, [active]);
 
-  // Server-side guard. Single in-flight activation prevents double-clicks during round-trip.
+  // Cooldowns: per-card 10s lockout after click, single in-flight guard.
   const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({}); // id -> unlockMs
 
   const activate = async (b: InvBuff) => {
     if (!user || activatingId) return;
+    if ((cooldowns[b.id] ?? 0) > Date.now()) return;
     setActivatingId(b.id);
+    setCooldowns((c) => ({ ...c, [b.id]: Date.now() + 10_000 }));
     try {
       const { data, error } = await supabase.rpc("activate_inventory_buff", { _buff_id: b.id });
       if (error) {
@@ -142,11 +145,37 @@ export default function Buffs() {
     }
   };
 
+  // Reward: every 5 minutes of having any active timed buff, grant a free pack.
+  // Uses localStorage to persist last-grant timestamp across reloads, and only fires
+  // while at least one active_buff exists for the user.
+  useEffect(() => {
+    if (!user) return;
+    const key = `buff-pack-reward:${user.id}`;
+    const tryGrant = async () => {
+      const hasActive = active.some((b) => !b.expires_at || new Date(b.expires_at).getTime() > Date.now());
+      if (!hasActive) return;
+      const last = Number(localStorage.getItem(key) || "0");
+      const now = Date.now();
+      if (now - last < 5 * 60_000) return;
+      localStorage.setItem(key, String(now));
+      const rarities: Array<"common" | "rare" | "epic" | "legendary" | "mythic"> = ["common","common","rare","rare","epic","legendary","mythic"];
+      const rarity = rarities[Math.floor(Math.random() * rarities.length)];
+      const { error } = await supabase.from("inventory").insert({
+        user_id: user.id, item_type: "pack", item_key: "buff_pack", rarity,
+        metadata: { opened: false, source: "active_buff_reward" } as any,
+      } as any);
+      if (!error) toast.success("🎁 Active-buff reward: +1 pack!", { description: "Open it in the Packs tab." });
+    };
+    tryGrant();
+    const t = window.setInterval(tryGrant, 30_000);
+    return () => window.clearInterval(t);
+  }, [user?.id, active]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2"><Sparkles className="h-6 w-6" /> Buffs</h1>
-        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP. Max 3 active · 4-second cooldown · 10 minutes of focused study required between activations.</p>
+        <p className="text-muted-foreground text-sm">Activate buffs to multiply XP. Max 3 active · 10-second cooldown between activations · While a buff is active you earn a free pack every 5 minutes.</p>
       </div>
 
       <section>
@@ -189,7 +218,16 @@ export default function Buffs() {
                     <Zap className="h-3 w-3" /> {m.instant ? "Instant" : m.durationMin ? `${m.durationMin} min` : "Permanent"}
                     {m.category && <span className="ml-auto text-[10px] uppercase tracking-wider opacity-70">{m.category}</span>}
                   </div>
-                  <Button onClick={() => activate(b)} disabled={activatingId === b.id} className="mt-auto bg-gradient-primary text-primary-foreground" size="sm">{activatingId === b.id ? "Activating…" : "Activate"}</Button>
+                  {(() => {
+                    const cdLeft = Math.max(0, Math.ceil(((cooldowns[b.id] ?? 0) - Date.now()) / 1000));
+                    const isActivating = activatingId === b.id;
+                    const onCd = cdLeft > 0;
+                    return (
+                      <Button onClick={() => activate(b)} disabled={isActivating || onCd} className="mt-auto bg-gradient-primary text-primary-foreground" size="sm">
+                        {isActivating ? "Activating…" : onCd ? `Wait ${cdLeft}s` : "Activate"}
+                      </Button>
+                    );
+                  })()}
                 </div>
               );
             })}

@@ -26,10 +26,12 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
   const [remaining, setRemaining] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const endAtRef = useRef<number | null>(null); // wall-clock ms when timer ends
 
   const stop = useCallback(async (completed = false) => {
     setRunning(false);
     if (intervalRef.current) { window.clearInterval(intervalRef.current); intervalRef.current = null; }
+    endAtRef.current = null;
     const elapsedSec = duration - remaining;
     const minutes = Math.max(1, Math.round(elapsedSec / 60));
     if (!user) { setDuration(0); setRemaining(0); return; }
@@ -54,17 +56,26 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
   const start = useCallback((minutes: number) => {
     const sec = minutes * 60;
     setDuration(sec); setRemaining(sec); setRunning(true);
+    endAtRef.current = Date.now() + sec * 1000;
     // Mark in-flight focus so buff cooldown counts in real time
     if (user) {
       supabase.from("profiles").update({ current_focus_started_at: new Date().toISOString() } as any).eq("user_id", user.id);
     }
     if (intervalRef.current) window.clearInterval(intervalRef.current);
+    // Tick on wall-clock so timer matches real time even when tab is backgrounded
     intervalRef.current = window.setInterval(() => {
-      setRemaining((r) => {
-        if (r <= 1) { window.clearInterval(intervalRef.current!); intervalRef.current = null; setRunning(false); stop(true); return 0; }
-        return r - 1;
-      });
-    }, 1000);
+      const end = endAtRef.current;
+      if (end == null) return;
+      const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+      setRemaining(left);
+      if (left <= 0) {
+        window.clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        endAtRef.current = null;
+        setRunning(false);
+        stop(true);
+      }
+    }, 250);
   }, [stop, user]);
 
   return (
