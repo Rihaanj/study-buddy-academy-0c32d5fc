@@ -218,7 +218,16 @@ export default function Buffs() {
                     <Zap className="h-3 w-3" /> {m.instant ? "Instant" : m.durationMin ? `${m.durationMin} min` : "Permanent"}
                     {m.category && <span className="ml-auto text-[10px] uppercase tracking-wider opacity-70">{m.category}</span>}
                   </div>
-                  <Button onClick={() => activate(b)} disabled={activatingId === b.id} className="mt-auto bg-gradient-primary text-primary-foreground" size="sm">{activatingId === b.id ? "Activating…" : "Activate"}</Button>
+                  {(() => {
+                    const cdLeft = Math.max(0, Math.ceil(((cooldowns[b.id] ?? 0) - Date.now()) / 1000));
+                    const isActivating = activatingId === b.id;
+                    const onCd = cdLeft > 0;
+                    return (
+                      <Button onClick={() => activate(b)} disabled={isActivating || onCd} className="mt-auto bg-gradient-primary text-primary-foreground" size="sm">
+                        {isActivating ? "Activating…" : onCd ? `Wait ${cdLeft}s` : "Activate"}
+                      </Button>
+                    );
+                  })()}
                 </div>
               );
             })}
