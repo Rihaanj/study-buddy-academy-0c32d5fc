@@ -90,11 +90,11 @@ export const AppLayout = () => {
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-strong border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
         <NavLink to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-xl shadow-glow shrink-0 grid place-items-center">
+          <div className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-2xl shrink-0 grid place-items-center bg-gradient-to-br from-primary/30 to-accent/20 shadow-[0_4px_20px_-4px_hsl(var(--primary)/0.5)]">
             <img
               src={logoUrl}
               alt="Study Bud AI logo"
-              className="h-full w-full object-contain drop-shadow-[0_0_10px_hsl(var(--primary)/0.6)]"
+              className="h-[88%] w-[88%] object-contain"
               width={40}
               height={40}
             />
