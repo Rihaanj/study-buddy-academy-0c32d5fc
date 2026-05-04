@@ -530,9 +530,8 @@ export default function AIHub() {
         <div className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-gradient-primary opacity-20 blur-3xl" />
         <div className="absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-secondary/30 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <div className="relative h-14 w-14 grid place-items-center shrink-0 float">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-primary opacity-50 blur-xl" />
-            <img src={logoUrl} alt="Study Bud AI logo" className="relative h-full w-full object-contain drop-shadow-[0_0_18px_hsl(var(--primary)/0.7)]" width={56} height={56} loading="lazy" />
+          <div className="relative h-14 w-14 rounded-2xl shrink-0 grid place-items-center bg-gradient-to-br from-primary/30 to-accent/20 shadow-[0_4px_20px_-4px_hsl(var(--primary)/0.6)] float">
+            <img src={logoUrl} alt="Study Bud AI logo" className="relative h-[84%] w-[84%] object-contain" width={56} height={56} loading="lazy" />
           </div>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold gradient-text flex items-center gap-2">
