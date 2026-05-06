@@ -86,7 +86,8 @@ export default function FollowUpGate({ topic, context, subject = null, onComplet
 
       const { awarded, capped } = await awardGateXp(user.id, correctCount);
       setXpAwarded(awarded);
-      if (awarded > 0) toast.success(`${correctCount}/3 correct · +${awarded} XP ⚡${capped ? " (daily cap)" : ""}`);
+      const sign = awarded > 0 ? "+" : "";
+      if (awarded !== 0) toast.success(`${correctCount}/3 correct · ${sign}${awarded} XP ⚡${capped ? " (daily cap)" : ""}`);
       else toast(`${correctCount}/3 correct — no XP this round. Wrong ones added to your Burn List.`);
       onComplete?.({ correct: correctCount, xp: awarded });
     } finally {
@@ -153,7 +154,7 @@ export default function FollowUpGate({ topic, context, subject = null, onComplet
       ) : (
         <div className="text-sm">
           Score: <span className="font-bold gradient-text">{results!.filter((r) => r.correct).length}/3</span>
-          {xpAwarded !== null && xpAwarded > 0 && <> · <span className="text-success">+{xpAwarded} XP</span></>}
+          {xpAwarded !== null && xpAwarded !== 0 && <> · <span className={xpAwarded > 0 ? "text-success" : "text-destructive"}>{xpAwarded > 0 ? "+" : ""}{xpAwarded} XP</span></>}
         </div>
       )}
     </div>
