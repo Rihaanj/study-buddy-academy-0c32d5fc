@@ -85,13 +85,31 @@ export function gateXp(correctCount: number): number {
   return [0, 5, 10, 20][Math.max(0, Math.min(3, correctCount))] ?? 0;
 }
 
+/** XP penalty for wrong answers in the 3-question gate. */
+export function gatePenalty(wrongCount: number): number {
+  // -3 XP per wrong answer (max -9)
+  return -3 * Math.max(0, Math.min(3, wrongCount));
+}
+
 export async function awardGateXp(userId: string, correctCount: number) {
   const base = gateXp(correctCount);
-  if (base <= 0) return { awarded: 0, base: 0 };
-  const mult = await getActiveXpMultiplier(userId);
-  const awarded = Math.round(base * mult);
-  const result = await awardXp(userId, awarded);
-  return { awarded: result?.awardedAmount ?? awarded, base, capped: (result as any)?.dailyXpCapped };
+  const wrong = 3 - Math.max(0, Math.min(3, correctCount));
+  const penalty = gatePenalty(wrong); // negative or 0
+  let awarded = 0;
+  let capped: boolean | undefined = undefined;
+  if (base > 0) {
+    const mult = await getActiveXpMultiplier(userId);
+    awarded = Math.round(base * mult);
+    const result = await awardXp(userId, awarded);
+    awarded = result?.awardedAmount ?? awarded;
+    capped = (result as any)?.dailyXpCapped;
+  }
+  if (penalty < 0) {
+    const result = await awardXp(userId, penalty);
+    // awardedAmount for negative is the actual delta applied (clamped to floor 0)
+    awarded += result?.awardedAmount ?? penalty;
+  }
+  return { awarded, base, penalty, capped };
 }
 
 export async function logAiHistory(userId: string, kind: string, topic: string | null, prompt: string | null, metadata: Record<string, unknown> = {}) {
