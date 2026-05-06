@@ -129,7 +129,7 @@ export default function Buffs() {
     if (!user || activatingId) return;
     if ((cooldowns[b.id] ?? 0) > Date.now()) return;
     setActivatingId(b.id);
-    setCooldowns((c) => ({ ...c, [b.id]: Date.now() + 10_000 }));
+    setCooldowns((c) => ({ ...c, [b.id]: Date.now() + 5_000 }));
     try {
       const { data, error } = await supabase.rpc("activate_inventory_buff", { _buff_id: b.id });
       if (error) {
