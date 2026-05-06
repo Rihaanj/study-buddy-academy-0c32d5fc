@@ -86,7 +86,8 @@ export default function FollowUpGate({ topic, context, subject = null, onComplet
 
       const { awarded, capped } = await awardGateXp(user.id, correctCount);
       setXpAwarded(awarded);
-      if (awarded > 0) toast.success(`${correctCount}/3 correct · +${awarded} XP ⚡${capped ? " (daily cap)" : ""}`);
+      const sign = awarded > 0 ? "+" : "";
+      if (awarded !== 0) toast.success(`${correctCount}/3 correct · ${sign}${awarded} XP ⚡${capped ? " (daily cap)" : ""}`);
       else toast(`${correctCount}/3 correct — no XP this round. Wrong ones added to your Burn List.`);
       onComplete?.({ correct: correctCount, xp: awarded });
     } finally {
