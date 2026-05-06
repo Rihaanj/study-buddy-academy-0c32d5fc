@@ -19,8 +19,8 @@ export async function streamAI({ body, onDelta }: { body: any; onDelta: (s: stri
   const headers = await authHeaders();
   const resp = await fetch(FN_URL, { method: "POST", headers, body: JSON.stringify(body) });
   if (resp.status === 401) throw new Error("Please sign in again to use the AI.");
-  if (resp.status === 429) throw new Error("Rate limited — try again shortly.");
-  if (resp.status === 402) throw new Error("AI credits exhausted. Add funds in Lovable settings.");
+  if (resp.status === 429) throw new Error("The AI is busy — try again in a moment.");
+  if (resp.status === 402 || resp.status === 503) throw new Error("The AI is taking a quick break — try again in a moment.");
   if (!resp.ok || !resp.body) throw new Error("AI request failed");
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
