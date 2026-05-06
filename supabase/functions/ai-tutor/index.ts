@@ -64,9 +64,9 @@ async function callGateway(body: any) {
 }
 
 function gatewayErrorResponse(r: Response) {
-  if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (r.status === 429) return new Response(JSON.stringify({ error: "The AI is busy right now — try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (r.status === 402) return new Response(JSON.stringify({ error: "The AI is temporarily unavailable — try again in a moment." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify({ error: "AI is having trouble — try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
 serve(async (req) => {

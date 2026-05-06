@@ -302,7 +302,7 @@ export default function Chat() {
         body: JSON.stringify({ messages: newMsgs }),
       });
       if (r.status === 429) { toast.error("Rate limited — try again shortly."); setAiBusy(false); return; }
-      if (r.status === 402) { toast.error("AI credits exhausted."); setAiBusy(false); return; }
+      if (r.status === 402 || r.status === 503) { toast.error("The AI is taking a quick break — try again in a moment."); setAiBusy(false); return; }
       if (!r.ok || !r.body) { toast.error("AI error"); setAiBusy(false); return; }
       const reader = r.body.getReader();
       const decoder = new TextDecoder();
