@@ -154,7 +154,7 @@ export default function FollowUpGate({ topic, context, subject = null, onComplet
       ) : (
         <div className="text-sm">
           Score: <span className="font-bold gradient-text">{results!.filter((r) => r.correct).length}/3</span>
-          {xpAwarded !== null && xpAwarded > 0 && <> · <span className="text-success">+{xpAwarded} XP</span></>}
+          {xpAwarded !== null && xpAwarded !== 0 && <> · <span className={xpAwarded > 0 ? "text-success" : "text-destructive"}>{xpAwarded > 0 ? "+" : ""}{xpAwarded} XP</span></>}
         </div>
       )}
     </div>
