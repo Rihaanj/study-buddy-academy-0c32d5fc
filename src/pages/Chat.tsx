@@ -116,46 +116,52 @@ export default function Chat() {
 
   useEffect(() => {
     if (!active) { setMessages([]); return; }
+    let cancelled = false;
+    const activeId = active.id;
+    const activeKind = active.kind;
+    setMessages([]); // clear stale messages immediately to avoid flash of previous chat
     (async () => {
-      if (active.kind === "dm") {
-        const { data } = await supabase.from("dm_messages").select("*").eq("chat_id", active.id).order("created_at");
+      if (activeKind === "dm") {
+        const { data } = await supabase.from("dm_messages").select("*").eq("chat_id", activeId).order("created_at");
+        if (cancelled) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       } else {
-        const { data } = await supabase.from("messages").select("*").eq("group_id", active.id).order("created_at");
+        const { data } = await supabase.from("messages").select("*").eq("group_id", activeId).order("created_at");
+        if (cancelled) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       }
-      setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
-      // Mark this chat as read on open
-      if (user) await markChatRead(user.id, active.kind, active.id);
-      loadLists();
+      setTimeout(() => { if (!cancelled) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, 50);
+      if (user && !cancelled) await markChatRead(user.id, activeKind, activeId);
+      if (!cancelled) loadLists();
     })();
 
     const ch = supabase
-      .channel(`msgs-${active.kind}-${active.id}`)
+      .channel(`msgs-${activeKind}-${activeId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: active.kind === "dm" ? "dm_messages" : "messages",
-          filter: active.kind === "dm" ? `chat_id=eq.${active.id}` : `group_id=eq.${active.id}` },
+        { event: "INSERT", schema: "public", table: activeKind === "dm" ? "dm_messages" : "messages",
+          filter: activeKind === "dm" ? `chat_id=eq.${activeId}` : `group_id=eq.${activeId}` },
         async (payload) => {
+          if (cancelled) return;
           setMessages((m) => m.some((x) => x.id === (payload.new as any).id) ? m : [...m, payload.new as any]);
           ensureProfiles([(payload.new as any).user_id]);
           setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
-          // Auto-mark read because user is currently viewing this chat
-          if (user) await markChatRead(user.id, active.kind, active.id);
+          if (user) await markChatRead(user.id, activeKind, activeId);
         }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: active.kind === "dm" ? "dm_messages" : "messages",
-          filter: active.kind === "dm" ? `chat_id=eq.${active.id}` : `group_id=eq.${active.id}` },
+        { event: "UPDATE", schema: "public", table: activeKind === "dm" ? "dm_messages" : "messages",
+          filter: activeKind === "dm" ? `chat_id=eq.${activeId}` : `group_id=eq.${activeId}` },
         (payload) => {
+          if (cancelled) return;
           setMessages((m) => m.map((x) => x.id === (payload.new as any).id ? (payload.new as any) : x));
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { cancelled = true; supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.id, active?.kind]);
 
