@@ -73,32 +73,31 @@ export default function Chat() {
     }
   };
 
-  const didAutoActivate = useRef(false);
-
-  const loadLists = async (autoActivate = false) => {
+  const loadLists = async () => {
     if (!user) return;
     const { dmChats: nextDms, groups: nextGroups } = await getChatSidebarData(user.id);
     const visibleGroups = nextGroups.filter((g) => g.subject !== "__dm__");
     setGroups(visibleGroups);
     setDmChats(nextDms);
 
-    if (!autoActivate || didAutoActivate.current) return;
-
+    // Auto-activate requested chat from URL
     const wantedGroup = searchParams.get("group");
     const wantedDm = searchParams.get("dm");
     if (wantedGroup) {
       const f = visibleGroups.find((g) => g.id === wantedGroup);
-      if (f) { setActive({ kind: "group", ...f }); setChatTab("gc"); didAutoActivate.current = true; return; }
+      if (f) { setActive({ kind: "group", ...f }); setChatTab("gc"); return; }
     }
     if (wantedDm) {
       const f = nextDms.find((d) => d.id === wantedDm);
-      if (f) { setActive({ kind: "dm", ...f }); setChatTab("dm"); didAutoActivate.current = true; return; }
+      if (f) { setActive({ kind: "dm", ...f }); setChatTab("dm"); return; }
     }
-    if (nextDms.length) { setActive({ kind: "dm", ...nextDms[0] }); setChatTab("dm"); didAutoActivate.current = true; }
-    else if (visibleGroups.length) { setActive({ kind: "group", ...visibleGroups[0] }); setChatTab("gc"); didAutoActivate.current = true; }
+    if (!active) {
+      if (nextDms.length) { setActive({ kind: "dm", ...nextDms[0] }); setChatTab("dm"); }
+      else if (visibleGroups.length) { setActive({ kind: "group", ...visibleGroups[0] }); setChatTab("gc"); }
+    }
   };
 
-  useEffect(() => { loadLists(true); /* eslint-disable-next-line */ }, [user?.id]);
+  useEffect(() => { loadLists(); /* eslint-disable-next-line */ }, [user?.id, searchParams]);
 
   useEffect(() => {
     if (!user) return;
