@@ -184,6 +184,11 @@ export const AppLayout = () => {
                   >
                     <t.icon className="h-4 w-4 shrink-0 text-white" />
                     <span className="text-sm font-medium truncate">{t.label}</span>
+                    {t.to === "/chat" && unreadChat > 0 && (
+                      <span className="ml-auto inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                        {unreadChat > 9 ? "9+" : unreadChat}
+                      </span>
+                    )}
                   </NavLink>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[220px] text-xs">
@@ -223,7 +228,14 @@ export const AppLayout = () => {
                   }`
                 }
               >
-                <t.icon className="h-4 w-4 shrink-0" />
+                <div className="relative">
+                  <t.icon className="h-4 w-4 shrink-0" />
+                  {t.to === "/chat" && unreadChat > 0 && (
+                    <span className="absolute -top-1 -right-2 inline-flex items-center justify-center h-3.5 min-w-[14px] px-1 rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold">
+                      {unreadChat > 9 ? "9+" : unreadChat}
+                    </span>
+                  )}
+                </div>
                 <span className="truncate w-full text-center">{t.label}</span>
               </NavLink>
             ))}
