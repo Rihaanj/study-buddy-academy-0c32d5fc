@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { markTabVisited } from "@/lib/badges";
 import { runDueDateNotifier } from "@/lib/notifications";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useFocus } from "@/hooks/useFocus";
+import { getUnreadChatCount } from "@/lib/chatMeta";
 
 const TAB_HINTS: Record<string, string> = {
   "/": "Your dashboard — quick stats, today's tasks, and shortcuts.",
@@ -53,8 +55,40 @@ const baseTabs = [
 export const AppLayout = () => {
   const { signOut, user } = useAuth();
   const { profile } = useProfile();
+  const focus = useFocus();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [unreadChat, setUnreadChat] = useState(0);
+
+  // Auto-start a 25m focus session once per app launch
+  useEffect(() => {
+    if (!user) return;
+    if (sessionStorage.getItem("auto-focus-started") === "1") return;
+    if (focus.running) return;
+    sessionStorage.setItem("auto-focus-started", "1");
+    focus.start(25);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Unread chat count + realtime refresh
+  useEffect(() => {
+    if (!user) { setUnreadChat(0); return; }
+    let cancelled = false;
+    const refresh = async () => {
+      const n = await getUnreadChatCount(user.id);
+      if (!cancelled) setUnreadChat(n);
+    };
+    refresh();
+    const ch = supabase
+      .channel(`unread-chat-${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "dm_messages" }, refresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_reads", filter: `user_id=eq.${user.id}` }, refresh)
+      .subscribe();
+    const t = window.setInterval(refresh, 30_000);
+    return () => { cancelled = true; supabase.removeChannel(ch); window.clearInterval(t); };
+  }, [user?.id]);
+
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
