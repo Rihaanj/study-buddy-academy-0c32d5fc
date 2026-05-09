@@ -16,7 +16,7 @@ import { markTabVisited } from "@/lib/badges";
 import { runDueDateNotifier } from "@/lib/notifications";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useFocus } from "@/hooks/useFocus";
-import { getUnreadChatCount } from "@/lib/chatMeta";
+import { getUnreadChatCount, markAllChatsRead } from "@/lib/chatMeta";
 
 const TAB_HINTS: Record<string, string> = {
   "/": "Your dashboard — quick stats, today's tasks, and shortcuts.",
@@ -60,15 +60,16 @@ export const AppLayout = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [unreadChat, setUnreadChat] = useState(0);
 
-  // Auto-start a 25m focus session once per app launch
+  // Online timer auto-starts inside FocusProvider — no need to kick it here.
+  void focus;
+
+  // Clear chat notifications when the user opens the Chat tab.
   useEffect(() => {
     if (!user) return;
-    if (sessionStorage.getItem("auto-focus-started") === "1") return;
-    if (focus.running) return;
-    sessionStorage.setItem("auto-focus-started", "1");
-    focus.start(25);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+    if (location.pathname.startsWith("/chat")) {
+      markAllChatsRead(user.id).then(() => setUnreadChat(0));
+    }
+  }, [location.pathname, user?.id]);
 
   // Unread chat count + realtime refresh
   useEffect(() => {

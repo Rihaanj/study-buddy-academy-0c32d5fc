@@ -50,6 +50,19 @@ export async function markChatRead(userId: string, chatKind: ChatKind, chatId: s
   );
 }
 
+/** Mark every chat thread (DMs + groups) as read for this user — used when opening the Chat tab. */
+export async function markAllChatsRead(userId: string) {
+  if (!userId) return;
+  const { dmChats, groups } = await getChatSidebarData(userId);
+  const now = new Date().toISOString();
+  const rows = [
+    ...dmChats.map((d) => ({ user_id: userId, chat_kind: "dm" as const, chat_id: d.id, last_read_at: now })),
+    ...groups.map((g) => ({ user_id: userId, chat_kind: "group" as const, chat_id: g.id, last_read_at: now })),
+  ];
+  if (!rows.length) return;
+  await db.from("chat_reads").upsert(rows, { onConflict: "user_id,chat_kind,chat_id" });
+}
+
 export async function getChatSidebarData(userId: string): Promise<{ dmChats: DmThread[]; groups: GroupThread[] }> {
   const [{ data: dms }, { data: memberships }, { data: reads }] = await Promise.all([
     supabase.from("dm_chats").select("id,user_a,user_b,created_at").or(`user_a.eq.${userId},user_b.eq.${userId}`),
