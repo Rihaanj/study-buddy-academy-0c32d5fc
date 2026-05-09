@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Home, ListChecks, Timer, MessageCircle, Sparkles, LogOut, Calendar, Package, Zap, Users, Star, User, HelpCircle, Trophy, ShieldAlert, GraduationCap } from "lucide-react";
+import { Home, ListChecks, Timer, MessageCircle, Sparkles, LogOut, Calendar, Package, Zap, Users, Star, User, HelpCircle, Trophy, ShieldAlert } from "lucide-react";
 const logoUrl = "/icons/icon-512.png";
 import { Starfield } from "./Starfield";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,15 +15,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { markTabVisited } from "@/lib/badges";
 import { runDueDateNotifier } from "@/lib/notifications";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useFocus } from "@/hooks/useFocus";
-import { getUnreadChatCount, markAllChatsRead } from "@/lib/chatMeta";
 
 const TAB_HINTS: Record<string, string> = {
   "/": "Your dashboard — quick stats, today's tasks, and shortcuts.",
   "/planner": "Add assignments and tasks. Smart priority sorts what to do first.",
   "/calendar": "See deadlines, study sessions, and events on a calendar view.",
   "/focus": "Pomodoro-style focus timer. Earns the most XP in the app.",
-  "/grades": "Track grades by class. Add what-if assignments to test your grade.",
   "/chat": "Group study chats and DMs with friends. Send images, stickers & meet links.",
   "/friends": "Add friends, accept requests, and unlock 1-on-1 DMs.",
   "/leaderboard": "Weekly rankings. Top 3 win bonus packs every Monday.",
@@ -41,7 +38,6 @@ const baseTabs = [
   { to: "/planner", label: "Planner", icon: ListChecks },
   { to: "/calendar", label: "Cal", icon: Calendar },
   { to: "/focus", label: "Focus", icon: Timer },
-  { to: "/grades", label: "Grades", icon: GraduationCap },
   { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/friends", label: "Friends", icon: Users },
   { to: "/leaderboard", label: "Ranks", icon: Trophy },
@@ -55,41 +51,8 @@ const baseTabs = [
 export const AppLayout = () => {
   const { signOut, user } = useAuth();
   const { profile } = useProfile();
-  const focus = useFocus();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [unreadChat, setUnreadChat] = useState(0);
-
-  // Online timer auto-starts inside FocusProvider — no need to kick it here.
-  void focus;
-
-  // Clear chat notifications when the user opens the Chat tab.
-  useEffect(() => {
-    if (!user) return;
-    if (location.pathname.startsWith("/chat")) {
-      markAllChatsRead(user.id).then(() => setUnreadChat(0));
-    }
-  }, [location.pathname, user?.id]);
-
-  // Unread chat count + realtime refresh
-  useEffect(() => {
-    if (!user) { setUnreadChat(0); return; }
-    let cancelled = false;
-    const refresh = async () => {
-      const n = await getUnreadChatCount(user.id);
-      if (!cancelled) setUnreadChat(n);
-    };
-    refresh();
-    const ch = supabase
-      .channel(`unread-chat-${user.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "dm_messages" }, refresh)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, refresh)
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_reads", filter: `user_id=eq.${user.id}` }, refresh)
-      .subscribe();
-    const t = window.setInterval(refresh, 30_000);
-    return () => { cancelled = true; supabase.removeChannel(ch); window.clearInterval(t); };
-  }, [user?.id]);
-
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -185,11 +148,6 @@ export const AppLayout = () => {
                   >
                     <t.icon className="h-4 w-4 shrink-0 text-white" />
                     <span className="text-sm font-medium truncate">{t.label}</span>
-                    {t.to === "/chat" && unreadChat > 0 && (
-                      <span className="ml-3 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold shadow-sm">
-                        {unreadChat > 9 ? "9+" : unreadChat}
-                      </span>
-                    )}
                   </NavLink>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[220px] text-xs">
@@ -229,14 +187,7 @@ export const AppLayout = () => {
                   }`
                 }
               >
-                <div className="relative">
-                  <t.icon className="h-4 w-4 shrink-0" />
-                  {t.to === "/chat" && unreadChat > 0 && (
-                    <span className="absolute -top-1 -right-2 inline-flex items-center justify-center h-3.5 min-w-[14px] px-1 rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold">
-                      {unreadChat > 9 ? "9+" : unreadChat}
-                    </span>
-                  )}
-                </div>
+                <t.icon className="h-4 w-4 shrink-0" />
                 <span className="truncate w-full text-center">{t.label}</span>
               </NavLink>
             ))}

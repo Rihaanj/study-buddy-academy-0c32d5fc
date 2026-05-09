@@ -1,77 +1,65 @@
+import { useState } from "react";
 import { useFocus } from "@/hooks/useFocus";
 import { Button } from "@/components/ui/button";
-import { Timer, Gift, Flame, Play, Square } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-const fmt = (s: number) => {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
-};
+const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
 export default function Focus() {
-  const { running, elapsed, start, stop } = useFocus();
-  const cycle = elapsed % 300;
-  const pct = (cycle / 300) * 100;
-  const minsToPack = Math.max(1, 5 - Math.floor(cycle / 60));
-  const totalMin = Math.floor(elapsed / 60);
-  const packsEarned = Math.floor(elapsed / 300);
+  const { running, remaining, duration, start, stop } = useFocus();
+  const [custom, setCustom] = useState(45);
+  const pct = duration ? (1 - remaining / duration) * 100 : 0;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Focus</h1>
-        <p className="text-muted-foreground text-sm">A live count of how long you've been on Study Bud. Earn a free pack every 5 minutes.</p>
+        <p className="text-muted-foreground text-sm">Timer floats across the app. Switch tabs freely while you study — XP is based purely on minutes.</p>
       </div>
 
-      <div className="glass-strong p-8 grid place-items-center text-center relative overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute -top-24 -left-16 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 h-72 w-72 rounded-full bg-accent/25 blur-3xl" />
-        <div className="relative h-64 w-64">
+      <div className="glass-strong p-8 grid place-items-center text-center">
+        <div className="relative h-56 w-56">
           <svg viewBox="0 0 36 36" className="absolute inset-0">
             <circle cx="18" cy="18" r="16" fill="none" stroke="hsl(var(--muted))" strokeWidth="2"/>
-            <circle cx="18" cy="18" r="16" fill="none" stroke="url(#focusg)" strokeWidth="2.5" strokeDasharray={`${pct} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" pathLength={100}/>
+            <circle cx="18" cy="18" r="16" fill="none" stroke="url(#g)" strokeWidth="2.5" strokeDasharray={`${pct} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" pathLength={100}/>
             <defs>
-              <linearGradient id="focusg" x1="0" x2="1">
+              <linearGradient id="g" x1="0" x2="1">
                 <stop offset="0%" stopColor="hsl(var(--primary))"/>
-                <stop offset="100%" stopColor="hsl(var(--accent))"/>
+                <stop offset="100%" stopColor="hsl(var(--secondary))"/>
               </linearGradient>
             </defs>
           </svg>
           <div className="absolute inset-0 grid place-items-center">
             <div>
-              <div className="text-5xl font-mono font-bold gradient-text tabular-nums">{fmt(elapsed)}</div>
-              <div className="text-xs text-muted-foreground mt-2">{running ? `Next pack in ${minsToPack}m` : "Paused"}</div>
+              <div className="text-5xl font-mono font-bold gradient-text">{fmt(running ? remaining : custom*60)}</div>
+              <div className="text-xs text-muted-foreground mt-2">{running ? "Studying" : "Pick a duration"}</div>
             </div>
           </div>
         </div>
 
-        <div className="relative mt-6 flex items-center gap-3">
-          {!running ? (
-            <Button onClick={() => start()} className="bg-gradient-primary text-primary-foreground shadow-glow"><Play className="h-4 w-4 mr-1.5" />Start</Button>
-          ) : (
-            <Button variant="destructive" onClick={() => stop(false)}><Square className="h-4 w-4 mr-1.5" />Stop & collect XP</Button>
-          )}
-        </div>
+        {!running ? (
+          <>
+            <div className="flex gap-2 mt-6">
+              {[25, 50, 90].map((m) => (
+                <Button key={m} variant="outline" onClick={()=>start(m)}>{m}m</Button>
+              ))}
+            </div>
+            <div className="mt-6 flex items-end gap-2">
+              <div>
+                <Label className="text-xs">Custom (minutes)</Label>
+                <Input type="number" min={1} max={240} value={custom} onChange={(e)=>setCustom(Number(e.target.value)||25)} className="w-24"/>
+              </div>
+              <Button onClick={()=>start(custom)} className="bg-gradient-primary text-primary-foreground shadow-glow">Start focus</Button>
+            </div>
+          </>
+        ) : (
+          <Button variant="destructive" className="mt-6" onClick={()=>stop(false)}>Stop session</Button>
+        )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="glass p-4 text-center">
-          <Timer className="h-4 w-4 mx-auto text-primary" />
-          <div className="text-2xl font-bold mt-1">{totalMin}m</div>
-          <div className="text-[11px] text-muted-foreground uppercase">Online</div>
-        </div>
-        <div className="glass p-4 text-center">
-          <Gift className="h-4 w-4 mx-auto text-accent" />
-          <div className="text-2xl font-bold mt-1">{packsEarned}</div>
-          <div className="text-[11px] text-muted-foreground uppercase">Packs earned</div>
-        </div>
-        <div className="glass p-4 text-center">
-          <Flame className="h-4 w-4 mx-auto text-orange-400" />
-          <div className="text-2xl font-bold mt-1">{totalMin * 2}</div>
-          <div className="text-[11px] text-muted-foreground uppercase">XP pending</div>
-        </div>
+      <div className="glass p-5 text-sm text-muted-foreground">
+        <strong className="text-foreground">XP:</strong> 2 XP per minute, multiplied by your active buffs. No tab-switching penalties.
       </div>
     </div>
   );
