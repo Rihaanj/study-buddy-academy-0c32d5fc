@@ -59,6 +59,7 @@ export default function Chat() {
   const groupImgRef = useRef<HTMLInputElement>(null);
   const [uploadingGroupImg, setUploadingGroupImg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const activeKeyRef = useRef<string>("");
 
   const ensureProfiles = async (ids: string[]) => {
     const need = ids.filter((id) => !profiles[id] && id);
@@ -115,26 +116,28 @@ export default function Chat() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!active) { setMessages([]); return; }
+    if (!active) { setMessages([]); activeKeyRef.current = ""; return; }
     let cancelled = false;
     const activeId = active.id;
     const activeKind = active.kind;
+    const myKey = `${activeKind}:${activeId}`;
+    activeKeyRef.current = myKey;
     setMessages([]); // clear stale messages immediately to avoid flash of previous chat
     (async () => {
       if (activeKind === "dm") {
         const { data } = await supabase.from("dm_messages").select("*").eq("chat_id", activeId).order("created_at");
-        if (cancelled) return;
+        if (cancelled || activeKeyRef.current !== myKey) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       } else {
         const { data } = await supabase.from("messages").select("*").eq("group_id", activeId).order("created_at");
-        if (cancelled) return;
+        if (cancelled || activeKeyRef.current !== myKey) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       }
-      setTimeout(() => { if (!cancelled) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, 50);
-      if (user && !cancelled) await markChatRead(user.id, activeKind, activeId);
-      if (!cancelled) loadLists();
+      setTimeout(() => { if (!cancelled && activeKeyRef.current === myKey) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, 50);
+      if (user && !cancelled && activeKeyRef.current === myKey) await markChatRead(user.id, activeKind, activeId);
+      if (!cancelled && activeKeyRef.current === myKey) loadLists();
     })();
 
     const ch = supabase
@@ -144,7 +147,7 @@ export default function Chat() {
         { event: "INSERT", schema: "public", table: activeKind === "dm" ? "dm_messages" : "messages",
           filter: activeKind === "dm" ? `chat_id=eq.${activeId}` : `group_id=eq.${activeId}` },
         async (payload) => {
-          if (cancelled) return;
+          if (cancelled || activeKeyRef.current !== myKey) return;
           setMessages((m) => m.some((x) => x.id === (payload.new as any).id) ? m : [...m, payload.new as any]);
           ensureProfiles([(payload.new as any).user_id]);
           setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
@@ -156,7 +159,7 @@ export default function Chat() {
         { event: "UPDATE", schema: "public", table: activeKind === "dm" ? "dm_messages" : "messages",
           filter: activeKind === "dm" ? `chat_id=eq.${activeId}` : `group_id=eq.${activeId}` },
         (payload) => {
-          if (cancelled) return;
+          if (cancelled || activeKeyRef.current !== myKey) return;
           setMessages((m) => m.map((x) => x.id === (payload.new as any).id ? (payload.new as any) : x));
         }
       )

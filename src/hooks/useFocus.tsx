@@ -2,84 +2,143 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { awardXp, getActiveXpMultiplier } from "@/lib/gamification";
-import { checkFocusBadges } from "@/lib/badges";
+import { rollRarity } from "@/lib/streakPacks";
 import { toast } from "sonner";
 
 type FocusCtx = {
   running: boolean;
-  remaining: number; // seconds
-  duration: number; // seconds
-  start: (minutes: number) => void;
+  /** seconds elapsed since session start (count-up). */
+  elapsed: number;
+  /** Convenience aliases kept for any older callers. */
+  remaining: number;
+  duration: number;
+  start: (_minutes?: number) => void;
   stop: (completed?: boolean) => Promise<void>;
 };
 
 const Ctx = createContext<FocusCtx | undefined>(undefined);
 
+const KEY_START = "focus-start-at";
+const KEY_PACK_LAST = "focus-pack-last-min";
+const PACK_INTERVAL_MIN = 5;
+
 /**
- * Focus provider — timer only, NO integrity tracking.
- * Users can switch tabs freely (they need to for studying).
- * XP = minutes × 2, applied at session end.
+ * Online-time count-up timer.
+ * - Auto-starts on first mount per session and persists across reloads via localStorage.
+ * - Awards a pack every 5 minutes of online time.
+ * - Awards XP at stop based on elapsed minutes (2 XP/min × buff multiplier).
  */
 export const FocusProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [duration, setDuration] = useState(0);
-  const [remaining, setRemaining] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
+  const startAtRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
-  const endAtRef = useRef<number | null>(null); // wall-clock ms when timer ends
+  const lastPackMinRef = useRef<number>(0);
+  const grantingRef = useRef(false);
+
+  const grantPackIfDue = useCallback(async (mins: number) => {
+    if (!user) return;
+    if (mins <= 0) return;
+    const due = Math.floor(mins / PACK_INTERVAL_MIN);
+    if (due <= lastPackMinRef.current) return;
+    if (grantingRef.current) return;
+    grantingRef.current = true;
+    try {
+      const newMilestones = due - lastPackMinRef.current;
+      const rows = Array.from({ length: newMilestones }, () => ({
+        user_id: user.id,
+        item_type: "pack",
+        item_key: "buff_pack",
+        rarity: rollRarity(),
+        metadata: { opened: false, source: "online_timer" } as any,
+      }));
+      const { error } = await supabase.from("inventory").insert(rows as any);
+      if (!error) {
+        lastPackMinRef.current = due;
+        localStorage.setItem(KEY_PACK_LAST, String(due));
+        toast.success(newMilestones === 1 ? "+1 Pack 🎁" : `+${newMilestones} Packs 🎁`, {
+          description: `Earned for staying focused ${due * PACK_INTERVAL_MIN} minutes.`,
+        });
+      }
+    } finally {
+      grantingRef.current = false;
+    }
+  }, [user]);
+
+  const tick = useCallback(() => {
+    const start = startAtRef.current;
+    if (start == null) return;
+    const e = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    setElapsed(e);
+    grantPackIfDue(Math.floor(e / 60));
+  }, [grantPackIfDue]);
+
+  const start = useCallback((_mins?: number) => {
+    if (intervalRef.current) window.clearInterval(intervalRef.current);
+    const startAt = Date.now();
+    startAtRef.current = startAt;
+    localStorage.setItem(KEY_START, String(startAt));
+    localStorage.setItem(KEY_PACK_LAST, "0");
+    lastPackMinRef.current = 0;
+    setElapsed(0);
+    setRunning(true);
+    intervalRef.current = window.setInterval(tick, 1000);
+  }, [tick]);
 
   const stop = useCallback(async (completed = false) => {
-    setRunning(false);
     if (intervalRef.current) { window.clearInterval(intervalRef.current); intervalRef.current = null; }
-    endAtRef.current = null;
-    const elapsedSec = duration - remaining;
-    const minutes = Math.max(1, Math.round(elapsedSec / 60));
-    if (!user) { setDuration(0); setRemaining(0); return; }
-    // Clear in-flight focus marker
-    await supabase.from("profiles").update({ current_focus_started_at: null } as any).eq("user_id", user.id);
-    if (completed || elapsedSec >= 60) {
-      const baseXp = minutes * 2;
-      const buffMult = await getActiveXpMultiplier(user.id);
-      const xp = Math.round(baseXp * buffMult);
-      await supabase.from("focus_sessions").insert({
-        user_id: user.id, duration_minutes: minutes, integrity_score: 100, xp_earned: xp,
-      });
-      const { data: p } = await supabase.from("profiles").select("focus_streak").eq("user_id", user.id).maybeSingle();
-      await supabase.from("profiles").update({ focus_streak: (p?.focus_streak ?? 0) + 1 }).eq("user_id", user.id);
-      await awardXp(user.id, xp);
-      await checkFocusBadges(user.id, minutes, 100);
-      toast.success(`+${xp} XP earned 🚀`, { description: `${minutes}m focus session` });
-    }
-    setDuration(0); setRemaining(0);
-  }, [duration, remaining, user]);
+    const start = startAtRef.current;
+    const totalSec = start ? Math.floor((Date.now() - start) / 1000) : elapsed;
+    const minutes = Math.max(0, Math.round(totalSec / 60));
+    startAtRef.current = null;
+    localStorage.removeItem(KEY_START);
+    localStorage.removeItem(KEY_PACK_LAST);
+    lastPackMinRef.current = 0;
+    setRunning(false);
+    setElapsed(0);
+    if (!user || minutes < 1) return;
+    const baseXp = minutes * 2;
+    const mult = await getActiveXpMultiplier(user.id);
+    const xp = Math.round(baseXp * mult);
+    await supabase.from("focus_sessions").insert({
+      user_id: user.id, duration_minutes: minutes, integrity_score: 100, xp_earned: xp,
+    });
+    await awardXp(user.id, xp);
+    toast.success(`+${xp} XP`, { description: `${minutes}m online` });
+  }, [elapsed, user]);
 
-  const start = useCallback((minutes: number) => {
-    const sec = minutes * 60;
-    setDuration(sec); setRemaining(sec); setRunning(true);
-    endAtRef.current = Date.now() + sec * 1000;
-    // Mark in-flight focus so buff cooldown counts in real time
-    if (user) {
-      supabase.from("profiles").update({ current_focus_started_at: new Date().toISOString() } as any).eq("user_id", user.id);
-    }
-    if (intervalRef.current) window.clearInterval(intervalRef.current);
-    // Tick on wall-clock so timer matches real time even when tab is backgrounded
-    intervalRef.current = window.setInterval(() => {
-      const end = endAtRef.current;
-      if (end == null) return;
-      const left = Math.max(0, Math.round((end - Date.now()) / 1000));
-      setRemaining(left);
-      if (left <= 0) {
-        window.clearInterval(intervalRef.current!);
-        intervalRef.current = null;
-        endAtRef.current = null;
-        setRunning(false);
-        stop(true);
+  // Resume across reloads + auto-start on first launch
+  useEffect(() => {
+    const stored = localStorage.getItem(KEY_START);
+    const lastPack = Number(localStorage.getItem(KEY_PACK_LAST) ?? "0");
+    if (stored) {
+      const startAt = Number(stored);
+      if (!Number.isNaN(startAt)) {
+        startAtRef.current = startAt;
+        lastPackMinRef.current = lastPack;
+        setRunning(true);
+        if (intervalRef.current) window.clearInterval(intervalRef.current);
+        intervalRef.current = window.setInterval(tick, 1000);
+        tick();
+        return;
       }
-    }, 250);
-  }, [stop, user]);
+    }
+    // auto-start fresh
+    start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-bind grant when user becomes available
+  useEffect(() => {
+    if (user && running) {
+      grantPackIfDue(Math.floor(elapsed / 60));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   return (
-    <Ctx.Provider value={{ running, remaining, duration, start, stop }}>
+    <Ctx.Provider value={{ running, elapsed, remaining: 0, duration: 0, start, stop }}>
       {children}
     </Ctx.Provider>
   );

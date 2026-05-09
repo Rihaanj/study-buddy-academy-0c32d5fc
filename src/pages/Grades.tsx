@@ -163,25 +163,46 @@ export default function Grades() {
           </TabsList>
           {activeClass && (
             <TabsContent value={activeClass.id} className="space-y-5 mt-5">
-              <div className="grid sm:grid-cols-3 gap-3">
-                <div className="glass p-4">
-                  <div className="text-xs uppercase text-muted-foreground">Current grade</div>
-                  <div className="text-3xl font-bold mt-1">{realPct == null ? "—" : `${realPct.toFixed(1)}%`}</div>
-                  <div className="text-xs text-muted-foreground">{realPct == null ? "No scored work" : letterGrade(realPct)}</div>
-                </div>
-                <div className="glass p-4">
-                  <div className="text-xs uppercase text-muted-foreground flex items-center gap-1"><FlaskConical className="h-3 w-3" /> What-if grade</div>
-                  <div className="text-3xl font-bold mt-1 text-accent">{simPct == null ? "—" : `${simPct.toFixed(1)}%`}</div>
-                  <div className="text-xs text-muted-foreground">Includes hypothetical entries</div>
-                </div>
-                <div className="glass p-4 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs uppercase text-muted-foreground">Class</div>
-                    <div className="text-sm mt-1">{classItems.length} assignments</div>
+              <div
+                className="relative overflow-hidden rounded-2xl p-6 sm:p-8 border border-white/10"
+                style={{
+                  background: `radial-gradient(120% 120% at 0% 0%, ${activeClass.color}33 0%, transparent 55%), radial-gradient(120% 120% at 100% 100%, hsl(var(--accent) / 0.25) 0%, transparent 55%), hsl(var(--card))`,
+                }}
+              >
+                <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-56 w-56 rounded-full blur-3xl opacity-50" style={{ background: activeClass.color }} />
+                <div className="relative grid sm:grid-cols-[auto,1fr,auto] gap-6 items-center">
+                  <div className="relative h-36 w-36 mx-auto sm:mx-0">
+                    <svg viewBox="0 0 36 36" className="absolute inset-0">
+                      <circle cx="18" cy="18" r="16" fill="none" stroke="hsl(var(--muted))" strokeWidth="2.5" />
+                      <circle cx="18" cy="18" r="16" fill="none" stroke={activeClass.color} strokeWidth="2.5"
+                        strokeDasharray={`${realPct == null ? 0 : Math.min(100, realPct)} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" pathLength={100} />
+                    </svg>
+                    <div className="absolute inset-0 grid place-items-center text-center">
+                      <div>
+                        <div className="text-3xl font-extrabold tabular-nums">{realPct == null ? "—" : `${realPct.toFixed(1)}`}</div>
+                        <div className="text-xs text-muted-foreground -mt-0.5">{realPct == null ? "no scores" : `${letterGrade(realPct)} grade`}</div>
+                      </div>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeClass(activeClass.id)} aria-label="Delete class"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <div className="min-w-0">
+                    <div className="text-xs uppercase tracking-widest text-muted-foreground">Class</div>
+                    <h2 className="text-2xl sm:text-3xl font-bold truncate">{activeClass.name}</h2>
+                    <div className="flex flex-wrap gap-2 mt-3 text-xs">
+                      <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">{realItems.filter(a => a.points_earned != null).length} scored</span>
+                      <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">{classItems.filter(a => a.is_hypothetical).length} what-if</span>
+                      <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">HW {activeClass.weight_homework}% · Tests {activeClass.weight_tests}% · Proj {activeClass.weight_projects}%</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 items-stretch">
+                    <div className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-center min-w-[150px]">
+                      <div className="text-[10px] uppercase tracking-wider text-accent flex items-center justify-center gap-1"><FlaskConical className="h-3 w-3" /> What-if</div>
+                      <div className="text-2xl font-bold tabular-nums">{simPct == null ? "—" : `${simPct.toFixed(1)}%`}</div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => removeClass(activeClass.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-3.5 w-3.5 mr-1" />Delete class</Button>
+                  </div>
                 </div>
               </div>
+
 
               <div className="glass p-4">
                 <div className="text-sm font-semibold mb-2">Grade over time</div>
