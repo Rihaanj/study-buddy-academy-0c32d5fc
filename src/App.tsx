@@ -12,6 +12,7 @@ import Home from "@/pages/Home";
 import Planner from "@/pages/Planner";
 import Focus from "@/pages/Focus";
 import Chat from "@/pages/Chat";
+import Grades from "@/pages/Grades";
 import AIHub from "@/pages/AIHub";
 import CalendarPage from "@/pages/Calendar";
 import Packs from "@/pages/Packs";
@@ -48,6 +49,7 @@ const App = () => (
                 <Route path="/planner" element={<Planner />} />
                 <Route path="/focus" element={<Focus />} />
                 <Route path="/chat" element={<Chat />} />
+                <Route path="/grades" element={<Grades />} />
                 <Route path="/ai" element={<AIHub />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/packs" element={<Packs />} />
