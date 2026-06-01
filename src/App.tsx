@@ -12,6 +12,7 @@ import Home from "@/pages/Home";
 import Planner from "@/pages/Planner";
 import Focus from "@/pages/Focus";
 import Chat from "@/pages/Chat";
+import Grades from "@/pages/Grades";
 import AIHub from "@/pages/AIHub";
 import CalendarPage from "@/pages/Calendar";
 import Packs from "@/pages/Packs";
