@@ -38,6 +38,7 @@ const baseTabs = [
   { to: "/planner", label: "Planner", icon: ListChecks },
   { to: "/calendar", label: "Cal", icon: Calendar },
   { to: "/focus", label: "Focus", icon: Timer },
+  { to: "/grades", label: "Grades", icon: GraduationCap },
   { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/friends", label: "Friends", icon: Users },
   { to: "/leaderboard", label: "Ranks", icon: Trophy },
