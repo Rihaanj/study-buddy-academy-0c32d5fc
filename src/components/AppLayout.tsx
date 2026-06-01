@@ -21,6 +21,7 @@ const TAB_HINTS: Record<string, string> = {
   "/planner": "Add assignments and tasks. Smart priority sorts what to do first.",
   "/calendar": "See deadlines, study sessions, and events on a calendar view.",
   "/focus": "Pomodoro-style focus timer. Earns the most XP in the app.",
+  "/grades": "Track classes & assignments. Live grade calculator + what-if simulator. Only you can see it.",
   "/chat": "Group study chats and DMs with friends. Send images, stickers & meet links.",
   "/friends": "Add friends, accept requests, and unlock 1-on-1 DMs.",
   "/leaderboard": "Weekly rankings. Top 3 win bonus packs every Monday.",
