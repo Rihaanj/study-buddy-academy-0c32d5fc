@@ -558,6 +558,92 @@ export type Database = {
         }
         Relationships: []
       }
+      grade_assignments: {
+        Row: {
+          category: string
+          class_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          is_hypothetical: boolean
+          points_earned: number | null
+          points_possible: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          class_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          is_hypothetical?: boolean
+          points_earned?: number | null
+          points_possible?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          class_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          is_hypothetical?: boolean
+          points_earned?: number | null
+          points_possible?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_assignments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "grade_classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grade_classes: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+          weight_homework: number
+          weight_projects: number
+          weight_tests: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+          weight_homework?: number
+          weight_projects?: number
+          weight_tests?: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+          weight_homework?: number
+          weight_projects?: number
+          weight_tests?: number
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           group_id: string
