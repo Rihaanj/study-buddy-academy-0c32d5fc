@@ -79,6 +79,28 @@ serve(async (req) => {
     });
   }
 
+  // Server-side per-user rate limit: max 60 AI calls per rolling 10 minutes.
+  try {
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { count } = await sb
+      .from("ai_history")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", since);
+    if ((count ?? 0) >= 60) {
+      return new Response(JSON.stringify({ error: "Slow down — you've made too many AI requests. Try again in a few minutes." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // best-effort log (don't block on errors)
+    sb.from("ai_history").insert({ user_id: userId, kind: "request" }).then(() => {}, () => {});
+  } catch (_e) { /* fail open on rate-limit infra error */ }
+
+
   try {
     const payload = await req.json();
     const { mode, prompt, imageUrl, topic, count, difficulty, question, expected, userAnswer, sampleQuestion, messages: convo } = payload;

@@ -105,25 +105,12 @@ export default function Friends() {
   const search = async () => {
     if (!user || !query.trim()) { setResults([]); return; }
     setSearching(true);
-    const q = query.trim().replace(/[%,()]/g, ""); // strip chars that break PostgREST `or` filter
-    // Run name + email searches separately so special chars in emails (@, .) don't break the OR filter
-    const [{ data: byName }, { data: byEmail }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("user_id,name,email,avatar_url,level")
-        .ilike("name", `%${q}%`)
-        .neq("user_id", user.id)
-        .limit(20),
-      supabase
-        .from("profiles")
-        .select("user_id,name,email,avatar_url,level")
-        .ilike("email", `%${q}%`)
-        .neq("user_id", user.id)
-        .limit(20),
-    ]);
-    const merged = new Map<string, ProfileLite>();
-    for (const p of [...(byName ?? []), ...(byEmail ?? [])] as any[]) merged.set(p.user_id, p);
-    setResults(Array.from(merged.values()));
+    const q = query.trim().replace(/[%,()]/g, "");
+    // Server-side RPC: returns only name/avatar/level (never email) so we don't expose PII.
+    const { data } = await supabase.rpc("search_users" as any, { _q: q });
+    setResults(((data ?? []) as any[]).map((p) => ({
+      user_id: p.user_id, name: p.name, avatar_url: p.avatar_url, level: p.level,
+    })) as ProfileLite[]);
     setSearching(false);
   };
 

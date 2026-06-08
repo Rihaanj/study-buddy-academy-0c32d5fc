@@ -1160,6 +1160,10 @@ export type Database = {
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
       ensure_weekly_score: { Args: { _user_id: string }; Returns: undefined }
+      has_pending_friend_request: {
+        Args: { _a: string; _b: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1183,6 +1187,16 @@ export type Database = {
       iso_monday: { Args: { _d: string }; Returns: string }
       level_from_xp: { Args: { _xp: number }; Returns: number }
       refresh_weekly_score: { Args: { _user_id: string }; Returns: undefined }
+      search_users: {
+        Args: { _q: string }
+        Returns: {
+          avatar_url: string
+          level: number
+          name: string
+          user_id: string
+        }[]
+      }
+      shares_group_with: { Args: { _a: string; _b: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
