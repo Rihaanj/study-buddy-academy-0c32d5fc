@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Home, ListChecks, Timer, MessageCircle, Sparkles, LogOut, Calendar, Package, Zap, Users, Star, User, HelpCircle, Trophy, ShieldAlert, GraduationCap } from "lucide-react";
+import { Home, ListChecks, Timer, MessageCircle, Sparkles, LogOut, Calendar, Package, Zap, Users, Star, User, HelpCircle, Trophy, ShieldAlert } from "lucide-react";
 const logoUrl = "/icons/icon-512.png";
 import { Starfield } from "./Starfield";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +21,7 @@ const TAB_HINTS: Record<string, string> = {
   "/planner": "Add assignments and tasks. Smart priority sorts what to do first.",
   "/calendar": "See deadlines, study sessions, and events on a calendar view.",
   "/focus": "Pomodoro-style focus timer. Earns the most XP in the app.",
-  "/grades": "Track classes & assignments. Live grade calculator + what-if simulator. Only you can see it.",
+  
   "/chat": "Group study chats and DMs with friends. Send images, stickers & meet links.",
   "/friends": "Add friends, accept requests, and unlock 1-on-1 DMs.",
   "/leaderboard": "Weekly rankings. Top 3 win bonus packs every Monday.",
@@ -39,7 +39,7 @@ const baseTabs = [
   { to: "/planner", label: "Planner", icon: ListChecks },
   { to: "/calendar", label: "Cal", icon: Calendar },
   { to: "/focus", label: "Focus", icon: Timer },
-  { to: "/grades", label: "Grades", icon: GraduationCap },
+  
   { to: "/chat", label: "Chat", icon: MessageCircle },
   { to: "/friends", label: "Friends", icon: Users },
   { to: "/leaderboard", label: "Ranks", icon: Trophy },
