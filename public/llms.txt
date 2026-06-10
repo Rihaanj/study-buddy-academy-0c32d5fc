@@ -1,0 +1,12 @@
+# Study Bud AI
+
+> AI tutor, smart planner, focus timer, streaks, and rewards — the all-in-one Student OS that helps students learn faster, beat procrastination, and level up their grades.
+
+## Pages
+
+- [Home](/): Overview of Study Bud AI features and benefits.
+- [AI Tutor](/ai): Socratic AI tutor that teaches concepts step-by-step.
+- [Focus Timer](/focus): Pomodoro-style focus sessions with streaks and rewards.
+- [Planner](/planner): Smart study planner for assignments and goals.
+- [Calendar](/calendar): Schedule view of upcoming study sessions and tasks.
+- [Help](/help): Guides and FAQ on using Study Bud AI.
