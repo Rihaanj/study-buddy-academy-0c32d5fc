@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Starfield } from "@/components/Starfield";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Brain, Target, Trophy, ArrowRight } from "lucide-react";
+import { SeoHead } from "@/components/SeoHead";
 const logoUrl = "/icons/icon-512.png";
 
 const features = [
@@ -46,7 +47,13 @@ export default function Login() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
+      <SeoHead
+        title="Sign in — Study Bud AI | Free AI Tutor for Students"
+        description="Sign in with Google to start using Study Bud AI: AI tutor, smart planner, focus timer, streaks, and rewards. Free for students."
+        path="/login"
+      />
       <Starfield />
+
 
       {/* Floating accent orbs */}
       <div className="absolute top-1/4 -left-24 w-96 h-96 rounded-full bg-primary/20 blur-[120px] animate-pulse" />

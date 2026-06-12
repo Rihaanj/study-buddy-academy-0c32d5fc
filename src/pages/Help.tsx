@@ -1,4 +1,15 @@
 import { Sparkles } from "lucide-react";
+import { SeoHead } from "@/components/SeoHead";
+
+const FAQ_ITEMS: { q: string; a: string }[] = [
+  { q: "What is Study Bud AI?", a: "Study Bud AI is a free all-in-one student app with an AI tutor, smart planner, focus timer, streaks, badges, and rewards to help you study faster and beat procrastination." },
+  { q: "How do I earn XP and level up?", a: "Earn XP by completing tasks, running focus sessions, and using AI study tools. Every 100 XP is one level, with stage evolutions at level 10 (Scholar), 25 (Mastermind), and 50 (Cosmic Genius)." },
+  { q: "How do streaks work?", a: "Use the app each day to grow your streak. Streaks of 5+ days unlock a free pack daily, and every 25-day milestone awards 3 bonus packs." },
+  { q: "What does the focus timer do?", a: "It is a Pomodoro-style timer that tracks integrity (tab switches lower your score) and awards badges like Marathon Mind, Zen Mode, and Focus Beast." },
+  { q: "Is Study Bud AI free?", a: "Yes — the core features including the AI tutor, planner, focus timer, packs, and leaderboards are free to use." },
+  { q: "How does the AI tutor help with homework?", a: "Ask any study question and the tutor explains it step by step. You can also generate quizzes, get practice plans, and upload images of notes for OCR and auto-questions." },
+];
+
 
 const SECTIONS: { title: string; emoji: string; items: string[] }[] = [
   {
@@ -119,9 +130,25 @@ const SECTIONS: { title: string; emoji: string; items: string[] }[] = [
 ];
 
 export default function Help() {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ_ITEMS.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
   return (
     <div className="space-y-6">
+      <SeoHead
+        title="Help & FAQ — Study Bud AI"
+        description="Learn how to use Study Bud AI: XP, streaks, focus timer, AI tutor, packs, buffs, friends, and the weekly leaderboard."
+        path="/help"
+        jsonLd={faqJsonLd}
+      />
       <section className="glass-strong p-6 relative overflow-hidden">
+
         <div className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-gradient-primary opacity-25 blur-3xl" />
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-2xl bg-gradient-primary grid place-items-center shadow-glow">

@@ -9,6 +9,7 @@ import { Timer, ListChecks, Sparkles, Calendar, Flame, Zap, Trophy } from "lucid
 import { useFocus } from "@/hooks/useFocus";
 import { format } from "date-fns";
 import { BadgeGrid } from "@/components/BadgeGrid";
+import { SeoHead } from "@/components/SeoHead";
 
 export default function Home() {
   const { user } = useAuth();
@@ -38,6 +39,12 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
+      <SeoHead
+        title="Dashboard — Study Bud AI"
+        description="Your study dashboard: today's top task, next event, active buffs, streak, and XP. Plan, focus, and level up."
+        path="/"
+      />
+
       <section className="glass-strong p-5 sm:p-8 relative overflow-hidden">
         <div className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-gradient-primary opacity-30 blur-3xl" />
         <h1 className="text-2xl sm:text-3xl font-bold">
