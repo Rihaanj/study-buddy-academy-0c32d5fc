@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Starfield } from "@/components/Starfield";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Brain, Target, Trophy, ArrowRight } from "lucide-react";
+import { SeoHead } from "@/components/SeoHead";
 const logoUrl = "/icons/icon-512.png";
 
 const features = [
