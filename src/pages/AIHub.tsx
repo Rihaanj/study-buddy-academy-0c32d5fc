@@ -26,7 +26,7 @@ async function aiAuthHeaders() {
   const token = data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY };
 }
-const aiHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` };
+
 
 // ===================== TUTOR (with Socratic / Analogy / Prereqs sub-modes + 3-Q gate) =====================
 function Tutor() {
@@ -109,7 +109,7 @@ function Tests() {
     }
     setLoading(true); setTest(null); setAnswers({}); setResults(null);
     try {
-      const r = await fetch(FN_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ mode: "test", topic, count, difficulty }) });
+      const r = await fetch(FN_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ mode: "test", topic, count, difficulty }) });
       if (!r.ok) { toast.error("Failed"); return; }
       setTest(await r.json());
     } finally { setLoading(false); }
@@ -124,7 +124,7 @@ function Tests() {
       if (!ua) { out[i] = { correct: false, feedback: "No answer." }; return; }
       if (q.type === "mcq") { out[i] = { correct: ua.toLowerCase() === String(q.answer).trim().toLowerCase() }; return; }
       try {
-        const r = await fetch(FN_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ mode: "grade", question: q.question, expected: q.answer, userAnswer: ua }) });
+        const r = await fetch(FN_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ mode: "grade", question: q.question, expected: q.answer, userAnswer: ua }) });
         if (r.ok) { const v = await r.json(); out[i] = { correct: !!v.correct, feedback: v.feedback }; }
         else out[i] = { correct: false, feedback: "Could not grade." };
         // Burn list for wrong
@@ -235,7 +235,7 @@ function ExamSim() {
     if (reason) { toast.error("Academic only.", { icon: <ShieldAlert className="h-4 w-4" /> }); if (user) await fileCheatReport({ userId: user.id, reason, context: `[exam] ${topic}` }); return; }
     setLoading(true); setOut(null);
     try {
-      const r = await fetch(FN_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ mode: "mimic", topic, sampleQuestion: sample }) });
+      const r = await fetch(FN_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ mode: "mimic", topic, sampleQuestion: sample }) });
       if (!r.ok) { toast.error("Failed"); return; }
       setOut(await r.json());
       if (user) await logAiHistory(user.id, "exam-mimic", topic, sample.slice(0, 200), {});
@@ -396,7 +396,7 @@ function VoiceLab() {
     if (!text.trim()) return;
     setLoading(true); setAudioUrl(null);
     try {
-      const r = await fetch(TTS_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ text }) });
+      const r = await fetch(TTS_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ text }) });
       if (!r.ok) { toast.error("TTS failed"); return; }
       const blob = await r.blob();
       setAudioUrl(URL.createObjectURL(blob));
@@ -421,8 +421,8 @@ function VoiceLab() {
         const b64 = btoa(bin);
         setAnalyzing(true);
         try {
-          const r = await fetch(STT_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ audioBase64: b64, mimeType: blob.type, durationSec: dur }) });
-          if (!r.ok) { toast.error("Transcription failed"); return; }
+          const r = await fetch(STT_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ audioBase64: b64, mimeType: blob.type, durationSec: dur }) });
+          if (!r.ok) { const msg = await r.text().catch(() => ""); toast.error(`Transcription failed${msg ? `: ${msg.slice(0,120)}` : ""}`); return; }
           setAnalysis(await r.json());
           if (user) await logAiHistory(user.id, "voice-audit", null, null, { dur });
         } finally { setAnalyzing(false); }
