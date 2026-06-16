@@ -109,7 +109,7 @@ function Tests() {
     }
     setLoading(true); setTest(null); setAnswers({}); setResults(null);
     try {
-      const r = await fetch(FN_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ mode: "test", topic, count, difficulty }) });
+      const r = await fetch(FN_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ mode: "test", topic, count, difficulty }) });
       if (!r.ok) { toast.error("Failed"); return; }
       setTest(await r.json());
     } finally { setLoading(false); }
@@ -124,7 +124,7 @@ function Tests() {
       if (!ua) { out[i] = { correct: false, feedback: "No answer." }; return; }
       if (q.type === "mcq") { out[i] = { correct: ua.toLowerCase() === String(q.answer).trim().toLowerCase() }; return; }
       try {
-        const r = await fetch(FN_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ mode: "grade", question: q.question, expected: q.answer, userAnswer: ua }) });
+        const r = await fetch(FN_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ mode: "grade", question: q.question, expected: q.answer, userAnswer: ua }) });
         if (r.ok) { const v = await r.json(); out[i] = { correct: !!v.correct, feedback: v.feedback }; }
         else out[i] = { correct: false, feedback: "Could not grade." };
         // Burn list for wrong
@@ -235,7 +235,7 @@ function ExamSim() {
     if (reason) { toast.error("Academic only.", { icon: <ShieldAlert className="h-4 w-4" /> }); if (user) await fileCheatReport({ userId: user.id, reason, context: `[exam] ${topic}` }); return; }
     setLoading(true); setOut(null);
     try {
-      const r = await fetch(FN_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ mode: "mimic", topic, sampleQuestion: sample }) });
+      const r = await fetch(FN_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ mode: "mimic", topic, sampleQuestion: sample }) });
       if (!r.ok) { toast.error("Failed"); return; }
       setOut(await r.json());
       if (user) await logAiHistory(user.id, "exam-mimic", topic, sample.slice(0, 200), {});
