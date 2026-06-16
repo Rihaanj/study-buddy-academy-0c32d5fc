@@ -421,8 +421,8 @@ function VoiceLab() {
         const b64 = btoa(bin);
         setAnalyzing(true);
         try {
-          const r = await fetch(STT_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ audioBase64: b64, mimeType: blob.type, durationSec: dur }) });
-          if (!r.ok) { toast.error("Transcription failed"); return; }
+          const r = await fetch(STT_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ audioBase64: b64, mimeType: blob.type, durationSec: dur }) });
+          if (!r.ok) { const msg = await r.text().catch(() => ""); toast.error(`Transcription failed${msg ? `: ${msg.slice(0,120)}` : ""}`); return; }
           setAnalysis(await r.json());
           if (user) await logAiHistory(user.id, "voice-audit", null, null, { dur });
         } finally { setAnalyzing(false); }
