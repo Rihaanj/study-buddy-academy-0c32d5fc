@@ -396,7 +396,7 @@ function VoiceLab() {
     if (!text.trim()) return;
     setLoading(true); setAudioUrl(null);
     try {
-      const r = await fetch(TTS_URL, { method: "POST", headers: aiHeaders, body: JSON.stringify({ text }) });
+      const r = await fetch(TTS_URL, { method: "POST", headers: await aiAuthHeaders(), body: JSON.stringify({ text }) });
       if (!r.ok) { toast.error("TTS failed"); return; }
       const blob = await r.blob();
       setAudioUrl(URL.createObjectURL(blob));
