@@ -26,7 +26,7 @@ async function aiAuthHeaders() {
   const token = data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY };
 }
-const aiHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` };
+
 
 // ===================== TUTOR (with Socratic / Analogy / Prereqs sub-modes + 3-Q gate) =====================
 function Tutor() {
