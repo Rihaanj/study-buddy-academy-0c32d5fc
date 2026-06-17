@@ -53,11 +53,10 @@ export async function classifyCheatIntent(prompt: string): Promise<string | null
 
 export async function fileCheatReport(opts: { userId: string; reason: string; context: string }) {
   const { data: profile } = await supabase
-    .from("profiles").select("name,email").eq("user_id", opts.userId).maybeSingle();
+    .from("profiles").select("name").eq("user_id", opts.userId).maybeSingle();
   await supabase.from("cheat_reports").insert({
     user_id: opts.userId,
     user_name: profile?.name ?? null,
-    user_email: profile?.email ?? null,
     reason: opts.reason,
     context: opts.context.slice(0, 2000),
   });

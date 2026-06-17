@@ -17,7 +17,7 @@ type Report = {
   id: string;
   user_id: string;
   user_name: string | null;
-  user_email: string | null;
+  user_email?: string | null;
   reason: string;
   context: string | null;
   status: "pending" | "approved" | "dismissed";
