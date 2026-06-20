@@ -60,6 +60,10 @@ export default function Chat() {
   const [uploadingGroupImg, setUploadingGroupImg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const activeRef = useRef<any>(null);
+  useEffect(() => { activeRef.current = active; }, [active]);
+  // Bumped on every user-initiated chat switch to invalidate in-flight loaders
+  const switchSeqRef = useRef(0);
 
 
   const ensureProfiles = async (ids: string[]) => {
