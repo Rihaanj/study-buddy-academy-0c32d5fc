@@ -59,6 +59,8 @@ export default function Chat() {
   const groupImgRef = useRef<HTMLInputElement>(null);
   const [uploadingGroupImg, setUploadingGroupImg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
 
   const ensureProfiles = async (ids: string[]) => {
     const need = ids.filter((id) => !profiles[id] && id);
