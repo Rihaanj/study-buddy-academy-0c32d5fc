@@ -583,7 +583,7 @@ export default function Chat() {
               <Button variant="ghost" size="icon" onClick={() => fileRef.current?.click()} aria-label="Send image"><ImageIcon className="h-4 w-4" /></Button>
               <EmojiPickerButton onPick={insertEmoji} />
               <StickerPicker onPick={sendSticker} />
-              <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Message..." className="flex-1" />
+              <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} onPaste={handlePaste} placeholder="Message... (paste images too)" className="flex-1" />
               <Button onClick={send} className="bg-gradient-primary text-primary-foreground" aria-label="Send"><Send className="h-4 w-4" /></Button>
             </div>
           </>
