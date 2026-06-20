@@ -60,6 +60,10 @@ export default function Chat() {
   const [uploadingGroupImg, setUploadingGroupImg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const activeRef = useRef<any>(null);
+  useEffect(() => { activeRef.current = active; }, [active]);
+  // Bumped on every user-initiated chat switch to invalidate in-flight loaders
+  const switchSeqRef = useRef(0);
 
 
   const ensureProfiles = async (ids: string[]) => {
@@ -75,31 +79,34 @@ export default function Chat() {
     }
   };
 
-  const loadLists = async () => {
+  const loadLists = async (autoSelect = false) => {
     if (!user) return;
     const { dmChats: nextDms, groups: nextGroups } = await getChatSidebarData(user.id);
     const visibleGroups = nextGroups.filter((g) => g.subject !== "__dm__");
     setGroups(visibleGroups);
     setDmChats(nextDms);
 
-    // Auto-activate requested chat from URL
+    if (!autoSelect) return;
+
+    // Only auto-activate on the very first load (or if URL points to a different chat than current).
     const wantedGroup = searchParams.get("group");
     const wantedDm = searchParams.get("dm");
-    if (wantedGroup) {
+    const cur = activeRef.current;
+    if (wantedGroup && (!cur || cur.id !== wantedGroup)) {
       const f = visibleGroups.find((g) => g.id === wantedGroup);
       if (f) { setActive({ kind: "group", ...f }); setChatTab("gc"); return; }
     }
-    if (wantedDm) {
+    if (wantedDm && (!cur || cur.id !== wantedDm)) {
       const f = nextDms.find((d) => d.id === wantedDm);
       if (f) { setActive({ kind: "dm", ...f }); setChatTab("dm"); return; }
     }
-    if (!active) {
+    if (!cur) {
       if (nextDms.length) { setActive({ kind: "dm", ...nextDms[0] }); setChatTab("dm"); }
       else if (visibleGroups.length) { setActive({ kind: "group", ...visibleGroups[0] }); setChatTab("gc"); }
     }
   };
 
-  useEffect(() => { loadLists(); /* eslint-disable-next-line */ }, [user?.id, searchParams]);
+  useEffect(() => { loadLists(true); /* eslint-disable-next-line */ }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -136,22 +143,24 @@ export default function Chat() {
     let cancelled = false;
     const activeId = active.id;
     const activeKind = active.kind;
+    const mySeq = switchSeqRef.current;
+    const isStale = () => cancelled || mySeq !== switchSeqRef.current || activeRef.current?.id !== activeId;
     setMessages([]); // clear stale messages immediately to avoid flash of previous chat
     (async () => {
       if (activeKind === "dm") {
         const { data } = await supabase.from("dm_messages").select("*").eq("chat_id", activeId).order("created_at");
-        if (cancelled) return;
+        if (isStale()) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       } else {
         const { data } = await supabase.from("messages").select("*").eq("group_id", activeId).order("created_at");
-        if (cancelled) return;
+        if (isStale()) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       }
-      setTimeout(() => { if (!cancelled) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, 50);
-      if (user && !cancelled) await markChatRead(user.id, activeKind, activeId);
-      if (!cancelled) loadLists();
+      setTimeout(() => { if (!isStale()) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, 50);
+      if (user && !isStale()) await markChatRead(user.id, activeKind, activeId);
+      if (!isStale()) loadLists();
     })();
 
     const ch = supabase
@@ -416,7 +425,7 @@ export default function Chat() {
             const unread = !isActive && d.unread_count > 0;
             return (
               <button key={d.id}
-                onClick={() => { setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }); }}
+                onClick={() => { if (active?.kind === "dm" && active.id === d.id) return; switchSeqRef.current++; setMessages([]); setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }, { replace: true }); }}
                 className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
                 <div className="relative shrink-0">
                   <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-9 w-9" />
@@ -440,7 +449,7 @@ export default function Chat() {
             const unread = !isActive && g.unread_count > 0;
             return (
               <button key={g.id}
-                onClick={() => { setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }); }}
+                onClick={() => { if (active?.kind === "group" && active.id === g.id) return; switchSeqRef.current++; setMessages([]); setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }, { replace: true }); }}
                 className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
                 <div className="relative shrink-0">
                   <GroupAvatar url={g.image_url} name={g.name} className="h-9 w-9" />
