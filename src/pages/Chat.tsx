@@ -79,31 +79,34 @@ export default function Chat() {
     }
   };
 
-  const loadLists = async () => {
+  const loadLists = async (autoSelect = false) => {
     if (!user) return;
     const { dmChats: nextDms, groups: nextGroups } = await getChatSidebarData(user.id);
     const visibleGroups = nextGroups.filter((g) => g.subject !== "__dm__");
     setGroups(visibleGroups);
     setDmChats(nextDms);
 
-    // Auto-activate requested chat from URL
+    if (!autoSelect) return;
+
+    // Only auto-activate on the very first load (or if URL points to a different chat than current).
     const wantedGroup = searchParams.get("group");
     const wantedDm = searchParams.get("dm");
-    if (wantedGroup) {
+    const cur = activeRef.current;
+    if (wantedGroup && (!cur || cur.id !== wantedGroup)) {
       const f = visibleGroups.find((g) => g.id === wantedGroup);
       if (f) { setActive({ kind: "group", ...f }); setChatTab("gc"); return; }
     }
-    if (wantedDm) {
+    if (wantedDm && (!cur || cur.id !== wantedDm)) {
       const f = nextDms.find((d) => d.id === wantedDm);
       if (f) { setActive({ kind: "dm", ...f }); setChatTab("dm"); return; }
     }
-    if (!active) {
+    if (!cur) {
       if (nextDms.length) { setActive({ kind: "dm", ...nextDms[0] }); setChatTab("dm"); }
       else if (visibleGroups.length) { setActive({ kind: "group", ...visibleGroups[0] }); setChatTab("gc"); }
     }
   };
 
-  useEffect(() => { loadLists(); /* eslint-disable-next-line */ }, [user?.id, searchParams]);
+  useEffect(() => { loadLists(true); /* eslint-disable-next-line */ }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
