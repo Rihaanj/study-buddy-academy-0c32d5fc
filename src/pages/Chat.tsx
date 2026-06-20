@@ -143,22 +143,24 @@ export default function Chat() {
     let cancelled = false;
     const activeId = active.id;
     const activeKind = active.kind;
+    const mySeq = switchSeqRef.current;
+    const isStale = () => cancelled || mySeq !== switchSeqRef.current || activeRef.current?.id !== activeId;
     setMessages([]); // clear stale messages immediately to avoid flash of previous chat
     (async () => {
       if (activeKind === "dm") {
         const { data } = await supabase.from("dm_messages").select("*").eq("chat_id", activeId).order("created_at");
-        if (cancelled) return;
+        if (isStale()) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       } else {
         const { data } = await supabase.from("messages").select("*").eq("group_id", activeId).order("created_at");
-        if (cancelled) return;
+        if (isStale()) return;
         setMessages((data ?? []) as any);
         ensureProfiles(Array.from(new Set((data ?? []).map((m: any) => m.user_id))));
       }
-      setTimeout(() => { if (!cancelled) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, 50);
-      if (user && !cancelled) await markChatRead(user.id, activeKind, activeId);
-      if (!cancelled) loadLists();
+      setTimeout(() => { if (!isStale()) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, 50);
+      if (user && !isStale()) await markChatRead(user.id, activeKind, activeId);
+      if (!isStale()) loadLists();
     })();
 
     const ch = supabase
