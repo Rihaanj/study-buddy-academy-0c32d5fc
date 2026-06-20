@@ -423,7 +423,7 @@ export default function Chat() {
             const unread = !isActive && d.unread_count > 0;
             return (
               <button key={d.id}
-                onClick={() => { setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }); }}
+                onClick={() => { if (active?.kind === "dm" && active.id === d.id) return; switchSeqRef.current++; setMessages([]); setActive({ kind: "dm", ...d }); setSearchParams({ dm: d.id }, { replace: true }); }}
                 className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
                 <div className="relative shrink-0">
                   <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-9 w-9" />
