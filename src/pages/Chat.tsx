@@ -420,6 +420,9 @@ export default function Chat() {
                 className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
                 <div className="relative shrink-0">
                   <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-9 w-9" />
+                  {d.partner?.user_id && onlineUsers.has(d.partner.user_id) && (
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                  )}
                   {unread && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />}
                 </div>
                 <div className="min-w-0 flex-1">
