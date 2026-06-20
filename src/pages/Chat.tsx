@@ -59,6 +59,8 @@ export default function Chat() {
   const groupImgRef = useRef<HTMLInputElement>(null);
   const [uploadingGroupImg, setUploadingGroupImg] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
 
   const ensureProfiles = async (ids: string[]) => {
     const need = ids.filter((id) => !profiles[id] && id);
@@ -113,6 +115,21 @@ export default function Chat() {
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Global presence channel — track who is online
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel("presence:online", { config: { presence: { key: user.id } } });
+    ch.on("presence", { event: "sync" }, () => {
+      const state = ch.presenceState();
+      setOnlineUsers(new Set(Object.keys(state)));
+    });
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") await ch.track({ online_at: new Date().toISOString() });
+    });
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
+
 
   useEffect(() => {
     if (!active) { setMessages([]); return; }
@@ -241,9 +258,20 @@ export default function Chat() {
       upsert: false,
     });
     if (error) { toast.error(`Upload failed: ${error.message}`); return; }
-    const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60 * 24 * 7);
+    const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60 * 24 * 365);
     await insertMessage({ image_url: signed?.signedUrl ?? path });
     toast.success("Photo sent");
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of Array.from(items)) {
+      if (it.type.startsWith("image/")) {
+        const file = it.getAsFile();
+        if (file) { e.preventDefault(); await upload(file); return; }
+      }
+    }
   };
 
   /** Soft-delete: sets deleted=true so peers see "this message was deleted". */
@@ -392,6 +420,9 @@ export default function Chat() {
                 className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
                 <div className="relative shrink-0">
                   <UserAvatar url={d.partner?.avatar_url} name={d.partner?.name} className="h-9 w-9" />
+                  {d.partner?.user_id && onlineUsers.has(d.partner.user_id) && (
+                    <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                  )}
                   {unread && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" />}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -439,7 +470,12 @@ export default function Chat() {
             <div className="px-3 sm:px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2">
               <div className="min-w-0 flex items-center gap-2">
                 {active.kind === "dm" ? (
-                  <UserAvatar url={active.partner?.avatar_url} name={active.partner?.name} className="h-8 w-8" />
+                  <div className="relative">
+                    <UserAvatar url={active.partner?.avatar_url} name={active.partner?.name} className="h-8 w-8" />
+                    {active.partner?.user_id && onlineUsers.has(active.partner.user_id) && (
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                    )}
+                  </div>
                 ) : (
                   <div className="relative group/gpfp">
                     <GroupAvatar url={active.image_url} name={active.name} className="h-8 w-8" />
@@ -453,6 +489,11 @@ export default function Chat() {
                 )}
                 <div className="min-w-0">
                   <div className="font-semibold truncate text-sm sm:text-base">{activeLabel()}</div>
+                  {active.kind === "dm" && active.partner?.user_id && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {onlineUsers.has(active.partner.user_id) ? <span className="text-green-500">● Online</span> : "Offline"}
+                    </div>
+                  )}
                   {active.kind === "group" && active.subject && <div className="text-xs text-muted-foreground truncate">{cleanText(active.subject)}</div>}
                 </div>
               </div>
@@ -542,7 +583,7 @@ export default function Chat() {
                           </div>
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-1 px-2">{format(new Date(m.created_at), "p")}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1 px-2">{format(new Date(m.created_at), "MMM d, p")}</div>
                     </div>
                   </div>
                 );
@@ -555,7 +596,7 @@ export default function Chat() {
               <Button variant="ghost" size="icon" onClick={() => fileRef.current?.click()} aria-label="Send image"><ImageIcon className="h-4 w-4" /></Button>
               <EmojiPickerButton onPick={insertEmoji} />
               <StickerPicker onPick={sendSticker} />
-              <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Message..." className="flex-1" />
+              <Input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} onPaste={handlePaste} placeholder="Message... (paste images too)" className="flex-1" />
               <Button onClick={send} className="bg-gradient-primary text-primary-foreground" aria-label="Send"><Send className="h-4 w-4" /></Button>
             </div>
           </>
