@@ -447,7 +447,7 @@ export default function Chat() {
             const unread = !isActive && g.unread_count > 0;
             return (
               <button key={g.id}
-                onClick={() => { setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }); }}
+                onClick={() => { if (active?.kind === "group" && active.id === g.id) return; switchSeqRef.current++; setMessages([]); setActive({ kind: "group", ...g }); setSearchParams({ group: g.id }, { replace: true }); }}
                 className={`w-full text-left p-2.5 rounded-lg transition flex items-center gap-2 ${isActive ? "bg-gradient-primary text-primary-foreground" : "hover:bg-white/5"}`}>
                 <div className="relative shrink-0">
                   <GroupAvatar url={g.image_url} name={g.name} className="h-9 w-9" />
