@@ -570,7 +570,7 @@ export default function Chat() {
                           </div>
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-1 px-2">{format(new Date(m.created_at), "p")}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1 px-2">{format(new Date(m.created_at), "MMM d, p")}</div>
                     </div>
                   </div>
                 );
