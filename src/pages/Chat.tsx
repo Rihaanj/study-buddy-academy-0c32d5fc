@@ -116,6 +116,21 @@ export default function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Global presence channel — track who is online
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel("presence:online", { config: { presence: { key: user.id } } });
+    ch.on("presence", { event: "sync" }, () => {
+      const state = ch.presenceState();
+      setOnlineUsers(new Set(Object.keys(state)));
+    });
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") await ch.track({ online_at: new Date().toISOString() });
+    });
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
+
+
   useEffect(() => {
     if (!active) { setMessages([]); return; }
     let cancelled = false;
