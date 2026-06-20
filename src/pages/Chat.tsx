@@ -241,9 +241,20 @@ export default function Chat() {
       upsert: false,
     });
     if (error) { toast.error(`Upload failed: ${error.message}`); return; }
-    const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60 * 24 * 7);
+    const { data: signed } = await supabase.storage.from("chat-images").createSignedUrl(path, 60 * 60 * 24 * 365);
     await insertMessage({ image_url: signed?.signedUrl ?? path });
     toast.success("Photo sent");
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of Array.from(items)) {
+      if (it.type.startsWith("image/")) {
+        const file = it.getAsFile();
+        if (file) { e.preventDefault(); await upload(file); return; }
+      }
+    }
   };
 
   /** Soft-delete: sets deleted=true so peers see "this message was deleted". */
