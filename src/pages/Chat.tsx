@@ -467,7 +467,12 @@ export default function Chat() {
             <div className="px-3 sm:px-4 py-3 border-b border-white/10 flex items-center justify-between gap-2">
               <div className="min-w-0 flex items-center gap-2">
                 {active.kind === "dm" ? (
-                  <UserAvatar url={active.partner?.avatar_url} name={active.partner?.name} className="h-8 w-8" />
+                  <div className="relative">
+                    <UserAvatar url={active.partner?.avatar_url} name={active.partner?.name} className="h-8 w-8" />
+                    {active.partner?.user_id && onlineUsers.has(active.partner.user_id) && (
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                    )}
+                  </div>
                 ) : (
                   <div className="relative group/gpfp">
                     <GroupAvatar url={active.image_url} name={active.name} className="h-8 w-8" />
@@ -481,6 +486,11 @@ export default function Chat() {
                 )}
                 <div className="min-w-0">
                   <div className="font-semibold truncate text-sm sm:text-base">{activeLabel()}</div>
+                  {active.kind === "dm" && active.partner?.user_id && (
+                    <div className="text-[10px] text-muted-foreground">
+                      {onlineUsers.has(active.partner.user_id) ? <span className="text-green-500">● Online</span> : "Offline"}
+                    </div>
+                  )}
                   {active.kind === "group" && active.subject && <div className="text-xs text-muted-foreground truncate">{cleanText(active.subject)}</div>}
                 </div>
               </div>
