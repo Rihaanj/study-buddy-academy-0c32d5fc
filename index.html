@@ -67,7 +67,16 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <a href="#main" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" onfocus="this.style.cssText='position:fixed;left:1rem;top:1rem;width:auto;height:auto;padding:.5rem 1rem;background:#0B0F1A;color:#fff;z-index:9999;border-radius:.5rem'">Skip to main content</a>
+    <div id="root">
+      <main id="main" style="min-height:100dvh;display:grid;place-items:center;background:#0B0F1A;color:#e6e8ee;font-family:Inter,system-ui,sans-serif;padding:2rem;text-align:center">
+        <div>
+          <img src="/icons/icon-192.png" alt="Study Bud AI" width="96" height="96" style="border-radius:24px;margin:0 auto 1rem;display:block" fetchpriority="high" />
+          <h1 style="font-size:1.75rem;margin:0 0 .5rem;font-weight:700">Study Bud AI</h1>
+          <p style="margin:0;color:#9aa3b2">AI tutor, planner, and focus timer — loading your cosmos…</p>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
