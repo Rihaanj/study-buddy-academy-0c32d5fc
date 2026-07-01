@@ -17,6 +17,7 @@ import { trackAIUsage, awardBadge } from "@/lib/badges";
 import { classifyCheatIntent, fileCheatReport } from "@/lib/cheating";
 import { format } from "date-fns";
 import { streamAI, logAiHistory } from "@/lib/aiHub";
+import Lesson from "@/components/Lesson";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-tts`;
@@ -541,8 +542,9 @@ export default function AIHub() {
           </div>
         </div>
       </div>
-      <Tabs defaultValue="tutor">
+      <Tabs defaultValue="lesson">
         <TabsList className="glass flex-wrap h-auto">
+          <TabsTrigger value="lesson"><Sparkles className="h-4 w-4 mr-1.5" />Lesson</TabsTrigger>
           <TabsTrigger value="tutor"><BookOpen className="h-4 w-4 mr-1.5" />Tutor</TabsTrigger>
           <TabsTrigger value="tests"><FlaskConical className="h-4 w-4 mr-1.5" />Tests</TabsTrigger>
           <TabsTrigger value="exam"><Flame className="h-4 w-4 mr-1.5" />Exam Sim</TabsTrigger>
@@ -551,6 +553,7 @@ export default function AIHub() {
           <TabsTrigger value="voice"><Mic className="h-4 w-4 mr-1.5" />Voice Lab</TabsTrigger>
           <TabsTrigger value="analytics"><History className="h-4 w-4 mr-1.5" />History</TabsTrigger>
         </TabsList>
+        <TabsContent value="lesson" className="mt-4"><Lesson /></TabsContent>
         <TabsContent value="tutor" className="mt-4"><Tutor /></TabsContent>
         <TabsContent value="tests" className="mt-4"><Tests /></TabsContent>
         <TabsContent value="exam" className="mt-4"><ExamSim /></TabsContent>

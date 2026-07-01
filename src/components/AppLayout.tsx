@@ -10,6 +10,8 @@ import { UserAvatar } from "./UserAvatar";
 import { XpBar } from "./XpBar";
 import { ReviewPrompt } from "./ReviewPrompt";
 import { OnboardingTour } from "./OnboardingTour";
+import { VoiceMicButton } from "./VoiceMicButton";
+import { GradeLevelPrompt } from "./GradeLevelPrompt";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { markTabVisited } from "@/lib/badges";
@@ -116,6 +118,7 @@ export const AppLayout = () => {
                 <span className="text-[11px] text-muted-foreground">⚡ {profile.xp} XP · 🔥 {profile.streak}</span>
                 <XpBar xp={profile.xp} compact />
               </div>
+              <VoiceMicButton />
               <NavLink to="/profile" aria-label="Profile" className="shrink-0">
                 <UserAvatar url={profile.avatar_url} name={profile.name} />
               </NavLink>
@@ -173,6 +176,9 @@ export const AppLayout = () => {
 
       {/* First-login welcome tour with 3-pack reward */}
       <OnboardingTour />
+
+      {/* Grade level one-time prompt */}
+      <GradeLevelPrompt />
 
       {/* Mobile bottom nav — horizontal scroll for many tabs */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 glass-strong border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
