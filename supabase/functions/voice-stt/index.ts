@@ -30,8 +30,8 @@ serve(async (req) => {
   }
   try {
     const { audioBase64, mimeType, durationSec } = await req.json();
-    const ELEVEN = Deno.env.get("ELEVENLABS_API_KEY");
-    if (!ELEVEN) throw new Error("ELEVENLABS_API_KEY missing");
+    const LOVABLE = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE) throw new Error("LOVABLE_API_KEY missing");
     if (!audioBase64) {
       return new Response(JSON.stringify({ error: "audioBase64 required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -40,26 +40,33 @@ serve(async (req) => {
     const binary = atob(audioBase64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: mimeType || "audio/webm" });
+    const mt = (mimeType || "audio/webm").split(";")[0];
+    const extMap: Record<string, string> = {
+      "audio/webm": "webm", "audio/mp4": "mp4", "audio/mpeg": "mp3",
+      "audio/wav": "wav", "audio/x-wav": "wav", "audio/ogg": "ogg",
+    };
+    const ext = extMap[mt] || "webm";
+    const blob = new Blob([bytes], { type: mt });
 
     const fd = new FormData();
-    fd.append("file", blob, "audio.webm");
-    fd.append("model_id", "scribe_v2");
-    fd.append("language_code", "eng");
-    fd.append("tag_audio_events", "false");
-    fd.append("diarize", "false");
+    fd.append("file", blob, `audio.${ext}`);
+    fd.append("model", "openai/gpt-4o-mini-transcribe");
 
-    const r = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
       method: "POST",
-      headers: { "xi-api-key": ELEVEN },
+      headers: { Authorization: `Bearer ${LOVABLE}` },
       body: fd,
     });
 
     if (!r.ok) {
       const err = await r.text();
-      console.error("eleven stt error", r.status, err);
-      return new Response(JSON.stringify({ error: `STT failed: ${r.status}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("stt error", r.status, err);
+      const msg = r.status === 402 || r.status === 429
+        ? "The AI is taking a quick break. Please try again in a moment."
+        : `Transcription unavailable (${r.status})`;
+      return new Response(JSON.stringify({ error: msg }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
 
     const data = await r.json();
     const transcript: string = data.text || "";
