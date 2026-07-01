@@ -17,6 +17,7 @@ import { trackAIUsage, awardBadge } from "@/lib/badges";
 import { classifyCheatIntent, fileCheatReport } from "@/lib/cheating";
 import { format } from "date-fns";
 import { streamAI, logAiHistory } from "@/lib/aiHub";
+import Lesson from "@/components/Lesson";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-tts`;
