@@ -118,6 +118,7 @@ export const AppLayout = () => {
                 <span className="text-[11px] text-muted-foreground">⚡ {profile.xp} XP · 🔥 {profile.streak}</span>
                 <XpBar xp={profile.xp} compact />
               </div>
+              <VoiceMicButton />
               <NavLink to="/profile" aria-label="Profile" className="shrink-0">
                 <UserAvatar url={profile.avatar_url} name={profile.name} />
               </NavLink>
