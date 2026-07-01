@@ -72,7 +72,7 @@ export default function Lesson() {
       if (!r.ok) { toast.error(j.error || "AI is taking a quick break — try again in a moment."); return; }
       const les: LessonT = { ...j.lesson, question };
       setLesson(les);
-      await trackAIUsage(user.id, "lesson");
+      await trackAIUsage(user.id, "tutor");
       await logAiHistory(user.id, "lesson", les.topic, question.slice(0, 200), {});
     } catch (e: any) {
       toast.error(e.message || "Failed");
