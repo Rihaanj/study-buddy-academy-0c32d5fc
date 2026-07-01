@@ -730,6 +730,63 @@ export type Database = {
         }
         Relationships: []
       }
+      lessons: {
+        Row: {
+          created_at: string
+          example: string
+          explanation: string
+          flashcards: Json
+          grade_level: string | null
+          id: string
+          key_takeaways: Json
+          mistakes: Json
+          next_topic: string
+          notes: string
+          question: string
+          quiz: Json
+          topic: string
+          updated_at: string
+          user_id: string
+          youtube_videos: Json
+        }
+        Insert: {
+          created_at?: string
+          example?: string
+          explanation?: string
+          flashcards?: Json
+          grade_level?: string | null
+          id?: string
+          key_takeaways?: Json
+          mistakes?: Json
+          next_topic?: string
+          notes?: string
+          question: string
+          quiz?: Json
+          topic: string
+          updated_at?: string
+          user_id: string
+          youtube_videos?: Json
+        }
+        Update: {
+          created_at?: string
+          example?: string
+          explanation?: string
+          flashcards?: Json
+          grade_level?: string | null
+          id?: string
+          key_takeaways?: Json
+          mistakes?: Json
+          next_topic?: string
+          notes?: string
+          question?: string
+          quiz?: Json
+          topic?: string
+          updated_at?: string
+          user_id?: string
+          youtube_videos?: Json
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string
@@ -776,6 +833,7 @@ export type Database = {
           current_focus_started_at: string | null
           email: string | null
           focus_streak: number
+          grade_level: string | null
           id: string
           last_active_date: string | null
           last_buff_activated_at: string | null
@@ -800,6 +858,7 @@ export type Database = {
           current_focus_started_at?: string | null
           email?: string | null
           focus_streak?: number
+          grade_level?: string | null
           id?: string
           last_active_date?: string | null
           last_buff_activated_at?: string | null
@@ -824,6 +883,7 @@ export type Database = {
           current_focus_started_at?: string | null
           email?: string | null
           focus_streak?: number
+          grade_level?: string | null
           id?: string
           last_active_date?: string | null
           last_buff_activated_at?: string | null
