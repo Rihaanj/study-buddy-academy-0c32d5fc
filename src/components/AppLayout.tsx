@@ -177,6 +177,9 @@ export const AppLayout = () => {
       {/* First-login welcome tour with 3-pack reward */}
       <OnboardingTour />
 
+      {/* Grade level one-time prompt */}
+      <GradeLevelPrompt />
+
       {/* Mobile bottom nav — horizontal scroll for many tabs */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 glass-strong border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
         <div className="overflow-x-auto scrollbar-none">
