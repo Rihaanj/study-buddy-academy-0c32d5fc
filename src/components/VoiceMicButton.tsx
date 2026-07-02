@@ -94,18 +94,22 @@ export function VoiceMicButton() {
   const ctxRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const speechRef = useRef<any>(null);
+  const speechTextRef = useRef("");
   const chunksRef = useRef<Float32Array[]>([]);
   const startedAt = useRef(0);
 
   const cleanup = async () => {
     processorRef.current?.disconnect();
     sourceRef.current?.disconnect();
+    speechRef.current?.stop?.();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     if (ctxRef.current && ctxRef.current.state !== "closed") await ctxRef.current.close().catch(() => undefined);
     processorRef.current = null;
     sourceRef.current = null;
     streamRef.current = null;
     ctxRef.current = null;
+    speechRef.current = null;
   };
 
   const start = async () => {
@@ -138,6 +142,7 @@ export function VoiceMicButton() {
       silent.gain.value = 0;
 
       chunksRef.current = [];
+      speechTextRef.current = "";
       processor.onaudioprocess = (event) => {
         chunksRef.current.push(new Float32Array(event.inputBuffer.getChannelData(0)));
       };
@@ -150,6 +155,26 @@ export function VoiceMicButton() {
       sourceRef.current = source;
       processorRef.current = processor;
       startedAt.current = Date.now();
+
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (event: any) => {
+          let text = "";
+          for (let i = 0; i < event.results.length; i += 1) {
+            text += event.results[i][0]?.transcript || "";
+          }
+          speechTextRef.current = text.trim();
+        };
+        recognition.onerror = () => undefined;
+        recognition.onend = () => undefined;
+        speechRef.current = recognition;
+        try { recognition.start(); } catch { /* already started */ }
+      }
+
       setRecording(true);
       toast.success("Listening now");
     } catch (e: any) {
@@ -171,6 +196,13 @@ export function VoiceMicButton() {
     await cleanup();
 
     try {
+      const instantText = speechTextRef.current.trim();
+      if (instantText.length > 1) {
+        toast.success("Got it. Building your lesson now.");
+        navigate(`/ai?q=${encodeURIComponent(instantText)}`);
+        return;
+      }
+
       const blob = encodeWav(chunks, sampleRate);
       if (dur < 0.6 || blob.size < 2048 || chunks.length < 2) {
         toast.error("Too short. Hold the mic and speak clearly.");
@@ -197,6 +229,7 @@ export function VoiceMicButton() {
       toast.error(e.message || "Voice failed");
     } finally {
       chunksRef.current = [];
+      speechTextRef.current = "";
       setBusy(false);
     }
   };
