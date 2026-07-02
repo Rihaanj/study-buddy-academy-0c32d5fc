@@ -55,13 +55,14 @@ export default function Lesson() {
   const ask = async (raw?: string) => {
     const question = (raw ?? q).trim();
     if (!question || !user) return;
+    setLoading(true); setLesson(null); setSavedId(null);
     const reason = await classifyCheatIntent(question);
     if (reason) {
       toast.error("I can only help with learning topics. This attempt was logged.", { icon: <ShieldAlert className="h-4 w-4" /> });
       await fileCheatReport({ userId: user.id, reason, context: question.slice(0, 1000) });
+      setLoading(false);
       return;
     }
-    setLoading(true); setLesson(null); setSavedId(null);
     try {
       const r = await fetch(LESSON_URL, {
         method: "POST",
@@ -69,13 +70,14 @@ export default function Lesson() {
         body: JSON.stringify({ question, grade_level: (profile as any)?.grade_level ?? "high" }),
       });
       const j = await r.json();
-      if (!r.ok) { toast.error(j.error || "AI is taking a quick break — try again in a moment."); return; }
+      if (!r.ok || !j.lesson) { toast.error(j.error || "AI is reconnecting. Try again in a moment."); return; }
       const les: LessonT = { ...j.lesson, question };
       setLesson(les);
+      if (j.fallback) toast("Fast study mode loaded. Try again for a deeper AI version.");
       await trackAIUsage(user.id, "tutor");
       await logAiHistory(user.id, "lesson", les.topic, question.slice(0, 200), {});
     } catch (e: any) {
-      toast.error(e.message || "Failed");
+      toast.error(e.message || "AI is reconnecting. Try again in a moment.");
     } finally {
       setLoading(false);
     }
