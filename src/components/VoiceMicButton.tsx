@@ -102,7 +102,7 @@ export function VoiceMicButton() {
   const cleanup = async () => {
     processorRef.current?.disconnect();
     sourceRef.current?.disconnect();
-    speechRef.current?.stop?.();
+    try { speechRef.current?.stop?.(); } catch { /* recognition already stopped */ }
     streamRef.current?.getTracks().forEach((track) => track.stop());
     if (ctxRef.current && ctxRef.current.state !== "closed") await ctxRef.current.close().catch(() => undefined);
     processorRef.current = null;
