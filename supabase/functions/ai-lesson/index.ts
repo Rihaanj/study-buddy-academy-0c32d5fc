@@ -194,6 +194,7 @@ serve(async (req) => {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  let requestedQuestion = "Study Topic";
   try {
     const { question, grade_level } = await req.json();
     if (!question || typeof question !== "string") {
@@ -201,6 +202,7 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    requestedQuestion = question;
     if (!Deno.env.get("LOVABLE_API_KEY")) {
       const lesson = normalizeLesson(null, question);
       lesson.youtube_videos = [];
@@ -227,8 +229,7 @@ ${SAFETY}`;
       console.error("ai-lesson gateway", r.status, err);
       const lesson = normalizeLesson(null, question);
       lesson.youtube_videos = await videosPromise.catch(() => []);
-      return new Response(JSON.stringify({ error: msg }), {
-        status: r.status === 402 ? 503 : r.status,
+      return new Response(JSON.stringify({ lesson, fallback: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -251,8 +252,7 @@ ${SAFETY}`;
     });
   } catch (e) {
     console.error("ai-lesson", e);
-    const question = (() => { try { return new URL(req.url).searchParams.get("q") || "Study Topic"; } catch { return "Study Topic"; } })();
-    const lesson = normalizeLesson(null, question);
+    const lesson = normalizeLesson(null, requestedQuestion);
     lesson.youtube_videos = [];
     return new Response(JSON.stringify({ lesson }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
