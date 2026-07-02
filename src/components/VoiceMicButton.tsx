@@ -26,15 +26,30 @@ export function VoiceMicButton() {
 
   const start = async () => {
     try {
+      // Proactive permission check for clearer errors
+      if (navigator.permissions) {
+        try {
+          const st = await navigator.permissions.query({ name: "microphone" as PermissionName });
+          if (st.state === "denied") {
+            toast.error("Microphone blocked — enable it in your browser settings.");
+            return;
+          }
+        } catch { /* not all browsers support this query */ }
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const rec = new MediaRecorder(stream);
+      // Pick a mimeType the browser actually supports (Safari = mp4, others = webm)
+      const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/mpeg"];
+      const supported = candidates.find((t) =>
+        typeof MediaRecorder !== "undefined" && (MediaRecorder as any).isTypeSupported?.(t)
+      );
+      const rec = supported ? new MediaRecorder(stream, { mimeType: supported }) : new MediaRecorder(stream);
       chunksRef.current = [];
       rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       rec.onstop = async () => {
         const dur = (Date.now() - startedAt.current) / 1000;
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
         stream.getTracks().forEach((t) => t.stop());
-        if (dur < 0.6) { toast.error("Too short — hold and speak"); return; }
+        if (dur < 0.6 || blob.size < 2048) { toast.error("Too short — hold and speak clearly"); return; }
         setBusy(true);
         try {
           const ab = await blob.arrayBuffer();
@@ -48,10 +63,10 @@ export function VoiceMicButton() {
             headers: await authHeaders(),
             body: JSON.stringify({ audioBase64: b64, mimeType: blob.type, durationSec: dur }),
           });
-          if (!r.ok) { toast.error("Couldn't hear you — try again"); return; }
-          const j = await r.json();
+          const j = await r.json().catch(() => ({} as any));
+          if (!r.ok || j.error) { toast.error(j.error || "Couldn't hear you — try again"); return; }
           const text = (j.transcript || "").trim();
-          if (!text) { toast.error("No speech detected"); return; }
+          if (!text) { toast.error("No speech detected — speak a bit louder"); return; }
           toast.success("Got it — asking your AI tutor…");
           navigate(`/ai?q=${encodeURIComponent(text)}`);
         } catch (e: any) {
@@ -64,8 +79,11 @@ export function VoiceMicButton() {
       rec.start();
       recRef.current = rec;
       setRecording(true);
-    } catch {
-      toast.error("Mic access denied");
+    } catch (e: any) {
+      if (e?.name === "NotAllowedError") toast.error("Mic access denied — enable it in browser settings");
+      else if (e?.name === "NotFoundError") toast.error("No microphone found");
+      else if (e?.name === "NotReadableError") toast.error("Mic is being used by another app");
+      else toast.error(e?.message || "Mic access denied");
     }
   };
 

@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL = "google/gemini-2.5-flash";
 
 const SAFETY = `
 SAFETY & SCOPE:
@@ -143,10 +143,33 @@ ${SAFETY}`;
       });
     }
     const data = await r.json();
-    const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (!args) throw new Error("No lesson content returned");
+    const msg = data.choices?.[0]?.message;
+    const args = msg?.tool_calls?.[0]?.function?.arguments;
     let lesson: any;
-    try { lesson = JSON.parse(args); } catch { throw new Error("Bad lesson JSON"); }
+    if (args) {
+      try { lesson = JSON.parse(args); } catch { lesson = null; }
+    }
+    if (!lesson) {
+      // Fallback: ask the model again for raw JSON (no tools) — some model routings drop tool_calls.
+      const r2 = await callGateway({
+        model: MODEL,
+        messages: [
+          { role: "system", content: sys + "\n\nReturn ONLY a single JSON object matching this schema (no prose, no markdown fences):\n" + JSON.stringify(LESSON_SCHEMA) },
+          { role: "user", content: `Student question: ${question.slice(0, 2000)}\n\nReturn the JSON lesson now.` },
+        ],
+        response_format: { type: "json_object" },
+      });
+      if (r2.ok) {
+        const d2 = await r2.json();
+        const raw = d2.choices?.[0]?.message?.content || "";
+        const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+        try { lesson = JSON.parse(cleaned); } catch {
+          const s = cleaned.indexOf("{"); const e = cleaned.lastIndexOf("}");
+          if (s !== -1 && e > s) { try { lesson = JSON.parse(cleaned.slice(s, e + 1)); } catch {} }
+        }
+      }
+    }
+    if (!lesson) throw new Error("Lesson generation failed — try again.");
 
     // Enforce sizes just in case
     lesson.key_takeaways = (lesson.key_takeaways || []).slice(0, 8);
