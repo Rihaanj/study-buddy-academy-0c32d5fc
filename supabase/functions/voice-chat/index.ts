@@ -49,8 +49,12 @@ serve(async (req) => {
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: msgs }),
+      headers: {
+        "Lovable-API-Key": KEY,
+        "X-Lovable-AIG-SDK": "raw-edge-function",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: "openai/gpt-5.5", messages: msgs, max_tokens: 90 }),
     });
     if (!r.ok) {
       const err = await r.text().catch(() => "");
