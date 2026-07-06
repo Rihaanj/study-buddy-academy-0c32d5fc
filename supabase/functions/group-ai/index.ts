@@ -33,7 +33,11 @@ serve(async (req) => {
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        "Lovable-API-Key": LOVABLE_API_KEY,
+        "X-Lovable-AIG-SDK": "raw-edge-function",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: "system", content: SYSTEM }, ...(messages ?? [])],

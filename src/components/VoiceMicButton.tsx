@@ -127,16 +127,28 @@ export function VoiceMicButton() {
     }
   };
 
+  const speakWithBrowser = (text: string) => {
+    const synth = window.speechSynthesis;
+    if (!synth) return false;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    synth.speak(utterance);
+    return true;
+  };
+
   const playReply = async (text: string) => {
     try {
       const r = await fetch(TTS_URL, { method: "POST", headers: await authHeaders(), body: JSON.stringify({ text: text.slice(0, 1000) }) });
-      if (!r.ok) return;
+      if (!r.ok) { speakWithBrowser(text); return; }
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
       const a = new Audio(url);
       audioRef.current = a;
-      await a.play().catch(() => undefined);
-    } catch { /* silent */ }
+      await a.play().catch(() => { speakWithBrowser(text); });
+    } catch { speakWithBrowser(text); }
   };
 
   const stop = async () => {
@@ -174,8 +186,8 @@ export function VoiceMicButton() {
       const cj = await cr.json().catch(() => ({} as any));
       const reply = String(cj.reply || "").trim() || "Hey! What do you want to study?";
       history.push({ role: "assistant", content: reply });
-      toast(`You: ${text}`, { description: reply });
-      playReply(reply);
+      toast.success("Speaking…");
+      await playReply(reply);
     } catch (e: any) {
       toast.error(e.message || "Voice failed");
     } finally {

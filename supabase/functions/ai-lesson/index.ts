@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL = "openai/gpt-5.5";
 
 const SAFETY = `
 SAFETY & SCOPE:
@@ -73,10 +73,46 @@ function cleanAscii(input: unknown): string {
 
 function fallbackLesson(question: string) {
   const topic = cleanAscii(question).slice(0, 80) || "Study Topic";
+  const lower = topic.toLowerCase();
+  if (["hi", "hello", "hey"].includes(lower)) {
+    return {
+      topic: `The word "${topic}"`,
+      explanation: `"${topic}" is a greeting. People use it to start a conversation, get someone's attention, or show friendliness. It is simple, polite, and works in many everyday situations.
+
+In language study, a greeting matters because it sets the tone. A greeting can be formal, casual, warm, quick, or respectful depending on who you are talking to and where you are.` ,
+      example: `Real-world example: if you walk into class and say "${topic}" to a friend, you are opening the conversation. If you say "Hello, Ms. Rivera" to a teacher, the greeting becomes more respectful because you add the person's name or title.`,
+      key_takeaways: [
+        `"${topic}" is used to begin communication.`,
+        "Greetings help set the mood of a conversation.",
+        "Adding a name or title can make a greeting more personal or respectful.",
+        "Different settings need different levels of formality.",
+      ],
+      mistakes: [
+        "Using a very casual greeting in a formal situation.",
+        "Forgetting that tone of voice can change how a greeting feels.",
+        "Thinking a greeting has no meaning; it signals attention and respect.",
+      ],
+      notes: `## Quick Study Notes\n\n- Topic: the greeting "${topic}"\n- Meaning: a word used to start a conversation or acknowledge someone\n- Formal example: "Hello, Mr. Chen."\n- Casual example: "Hello! How are you?"\n- Why it matters: greetings create the first impression in a conversation.`,
+      quiz: [
+        { question: `What is the main purpose of saying "${topic}"?`, choices: ["To end a conversation", "To start or acknowledge communication", "To show anger", "To avoid speaking"], correct_index: 1, explanation: `"${topic}" is mainly used to begin or acknowledge a conversation.` },
+        { question: "What can make a greeting sound more respectful?", choices: ["Adding a name or title", "Mumbling it", "Ignoring the person", "Changing the subject"], correct_index: 0, explanation: "Names and titles can make greetings more personal or formal." },
+        { question: "Why does tone matter in a greeting?", choices: ["It changes the alphabet", "It can make the greeting feel warm, rude, or neutral", "It removes meaning", "It turns it into math"], correct_index: 1, explanation: "Tone affects how the listener understands your attitude." },
+        { question: "Which greeting is more formal?", choices: ["Yo", "Sup", "Hello, Dr. Lee", "Heyyy"], correct_index: 2, explanation: "Using hello with a title and name is more formal." },
+      ],
+      flashcards: [
+        { front: "Greeting", back: "A word or phrase used to begin communication." },
+        { front: `"${topic}"`, back: "A common greeting used in many situations." },
+        { front: "Formal greeting", back: "A respectful greeting, often with a title or name." },
+        { front: "Casual greeting", back: "A relaxed greeting used with friends or familiar people." },
+        { front: "Tone", back: "The feeling your voice or wording gives to the listener." },
+      ],
+      next_topic: "formal and informal greetings",
+    };
+  }
   return {
     topic,
-    explanation: `Let's turn this into a clear lesson. The main goal is to understand what the question is asking, identify the key idea, and connect it to an example you can remember. Start by writing the topic in your own words, then ask: what do I know, what is missing, and what rule or concept connects them?\n\nA strong student answer explains the idea, shows one example, and checks whether the result makes sense. Focus on the process instead of memorizing one final answer.`,
-    example: `Example: if the topic is a math or science idea, name the rule, plug in simple numbers, and explain each step. If the topic is history, English, or social studies, define the idea, give evidence, and explain why it matters. This makes your answer easier to remember and easier to defend on a quiz.`,
+    explanation: `This lesson is about: ${topic}. Start by defining exactly what "${topic}" means, then connect that meaning to a clear example. A good lesson should stay focused on the exact words you searched, not switch to a different topic.\n\nTo study ${topic}, ask three questions: what does it mean, where is it used, and why does it matter? Those questions help turn even a short search into something you can understand and remember.`,
+    example: `Real-world example: imagine someone asks you to explain "${topic}" to a younger student. First, give a simple definition. Next, show one situation where it appears. Finally, explain why knowing it helps in school, communication, or everyday life.`,
     key_takeaways: [
       "Restate the question in your own words.",
       "Find the main concept before trying to answer.",
@@ -102,7 +138,7 @@ function fallbackLesson(question: string) {
       { front: "Strong answer", back: "Claim plus reasoning plus evidence or steps." },
       { front: "Final check", back: "Ask whether the answer makes sense." },
     ],
-    next_topic: "Practice with a harder example",
+    next_topic: `examples of ${topic}`,
   };
 }
 
@@ -214,13 +250,19 @@ serve(async (req) => {
     const sys = `You are an expert student tutor who returns a FULL STRUCTURED LESSON, never a short answer.
 ${levelHint(grade_level)}
 
+CRITICAL TOPIC RULES:
+- Teach the EXACT user search. Do not reinterpret it into another topic.
+- If the search is a single word, phrase, greeting, slang term, name, or casual text like "hello", build a lesson ABOUT that word or phrase: meaning, usage, context, examples, common mistakes, and quiz.
+- The lesson.topic must clearly match the user's exact search.
+- Never treat a greeting in the lesson box as a chat message. This route is only for lessons.
+
 ${SAFETY}`;
     const videosPromise = fetchVideos(question, user.jwt);
     const r = await callGateway({
       model: MODEL,
       messages: [
         { role: "system", content: sys },
-        { role: "user", content: `Student question: ${question.slice(0, 2000)}\n\nReturn only one JSON object for a complete lesson. No markdown fence. The JSON must match this schema: ${JSON.stringify(LESSON_SCHEMA)}` },
+        { role: "user", content: `Exact lesson search: ${question.slice(0, 2000)}\n\nBuild the full lesson only about that exact search. Return only one JSON object for a complete lesson. No markdown fence. The JSON must match this schema: ${JSON.stringify(LESSON_SCHEMA)}` },
       ],
       response_format: { type: "json_object" },
     });
