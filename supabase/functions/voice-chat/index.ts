@@ -54,7 +54,7 @@ serve(async (req) => {
         "X-Lovable-AIG-SDK": "raw-edge-function",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model: "openai/gpt-5.5", messages: msgs, max_tokens: 90 }),
+      body: JSON.stringify({ model: "openai/gpt-5.5", messages: msgs, max_completion_tokens: 90 }),
     });
     if (!r.ok) {
       const err = await r.text().catch(() => "");
