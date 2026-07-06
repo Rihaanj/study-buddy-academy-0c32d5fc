@@ -28,6 +28,17 @@ Rules:
 - Never write essays, homework, or graded work. Politely refuse and offer to teach the concept instead.
 - Refuse explicit/violent/hateful/illegal content briefly and redirect to studying.`;
 
+function cleanAscii(input: unknown): string {
+  return String(input ?? "")
+    .normalize("NFKC")
+    .replace(/[\u2013\u2014\u2212]/g, "-")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/\u2026/g, "...")
+    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .trim();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const uid = await requireUser(req);
@@ -62,7 +73,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ reply: "I'm having trouble hearing right now. Try again in a moment." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const j = await r.json();
-    const reply = String(j.choices?.[0]?.message?.content || "Hey! What do you want to study?").trim().slice(0, 500);
+    const reply = cleanAscii(j.choices?.[0]?.message?.content || "Hey! What do you want to study?").slice(0, 500);
     return new Response(JSON.stringify({ reply }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("voice-chat", e);

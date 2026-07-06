@@ -58,7 +58,11 @@ async function callGateway(body: any) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+    headers: {
+      "Lovable-API-Key": LOVABLE_API_KEY || "",
+      "X-Lovable-AIG-SDK": "raw-edge-function",
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(body),
   });
 }
