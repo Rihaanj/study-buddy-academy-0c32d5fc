@@ -45,14 +45,31 @@ function fmtDuration(iso: string): string {
   return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
+function mapVideo(v: any) {
+  const t = v.snippet?.thumbnails || {};
+  return {
+    id: v.id,
+    title: v.snippet?.title || "",
+    channel: v.snippet?.channelTitle || "",
+    thumbnail: t.high?.url || t.medium?.url || t.default?.url || "",
+    duration: fmtDuration(v.contentDetails?.duration || ""),
+    url: `https://www.youtube.com/watch?v=${v.id}`,
+  };
+}
+
 async function search(topic: string): Promise<any[]> {
   const KEY = Deno.env.get("YOUTUBE_API_KEY");
   if (!KEY) throw new Error("YOUTUBE_API_KEY missing");
   const q = encodeURIComponent(`${topic} explained`);
+  // Keep params minimal to avoid 400s from restricted keys.
   const searchUrl =
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&safeSearch=strict&relevanceLanguage=en&maxResults=15&q=${q}&key=${KEY}`;
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&safeSearch=strict&maxResults=15&q=${q}&key=${KEY}`;
   const sr = await fetch(searchUrl);
-  if (!sr.ok) throw new Error(`YouTube search ${sr.status}`);
+  if (!sr.ok) {
+    const body = await sr.text().catch(() => "");
+    console.error("youtube-search list error", sr.status, body);
+    throw new Error(`YouTube search ${sr.status}: ${body.slice(0, 300)}`);
+  }
   const sj = await sr.json();
   const items: any[] = sj.items || [];
   if (!items.length) return [];
@@ -60,42 +77,26 @@ async function search(topic: string): Promise<any[]> {
   const detailsUrl =
     `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet,statistics&id=${ids}&key=${KEY}`;
   const dr = await fetch(detailsUrl);
-  if (!dr.ok) throw new Error(`YouTube details ${dr.status}`);
+  if (!dr.ok) {
+    const body = await dr.text().catch(() => "");
+    console.error("youtube-search details error", dr.status, body);
+    // Fall back to search items alone (no duration, no filtering).
+    return items.slice(0, 3).map((v: any) => mapVideo({ ...v, id: v.id?.videoId }));
+  }
   const dj = await dr.json();
-  const scored = (dj.items || []).map((v: any) => {
+  const enriched = (dj.items || []).map((v: any) => {
     const channel = (v.snippet?.channelTitle || "").toLowerCase();
     const isPriority = PRIORITY_CHANNELS.some((c) => channel.includes(c));
     const views = parseInt(v.statistics?.viewCount || "0", 10);
-    const durSec = (() => {
-      const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(v.contentDetails?.duration || "");
-      if (!m) return 0;
-      return (parseInt(m[1] || "0", 10) * 3600) + (parseInt(m[2] || "0", 10) * 60) + parseInt(m[3] || "0", 10);
-    })();
-    // filter out shorts (<60s) and 2h+ lectures for undergrad tempo
-    const okLen = durSec >= 60 && durSec <= 3600;
-    return {
-      video: v,
-      priority: isPriority ? 1 : 0,
-      score: (isPriority ? 1e9 : 0) + views,
-      okLen,
-    };
-  })
-    .filter((x: any) => x.okLen)
-    .sort((a: any, b: any) => b.score - a.score)
-    .slice(0, 3)
-    .map((x: any) => {
-      const v = x.video;
-      const t = v.snippet?.thumbnails || {};
-      return {
-        id: v.id,
-        title: v.snippet?.title || "",
-        channel: v.snippet?.channelTitle || "",
-        thumbnail: t.high?.url || t.medium?.url || t.default?.url || "",
-        duration: fmtDuration(v.contentDetails?.duration || ""),
-        url: `https://www.youtube.com/watch?v=${v.id}`,
-      };
-    });
-  return scored;
+    const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(v.contentDetails?.duration || "");
+    const durSec = m ? (parseInt(m[1] || "0", 10) * 3600) + (parseInt(m[2] || "0", 10) * 60) + parseInt(m[3] || "0", 10) : 0;
+    const okLen = durSec >= 45 && durSec <= 5400;
+    return { video: v, score: (isPriority ? 1e9 : 0) + views, okLen };
+  }).sort((a: any, b: any) => b.score - a.score);
+
+  const filtered = enriched.filter((x: any) => x.okLen);
+  const pick = (filtered.length ? filtered : enriched).slice(0, 3);
+  return pick.map((x: any) => mapVideo(x.video));
 }
 
 serve(async (req) => {
