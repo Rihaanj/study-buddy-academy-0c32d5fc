@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { classifyCheatIntent, fileCheatReport } from "@/lib/cheating";
+import { classifyLessonViolation, fileCheatReport } from "@/lib/cheating";
 import { logAiHistory } from "@/lib/aiHub";
 import { trackAIUsage } from "@/lib/badges";
 import { LessonView, type Lesson as LessonT } from "./LessonView";
@@ -18,7 +18,12 @@ const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-tts`;
 
 async function authHeaders() {
   const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  let token = data.session?.access_token;
+  if (!token) {
+    const refreshed = await supabase.auth.refreshSession();
+    token = refreshed.data.session?.access_token;
+  }
+  if (!token) throw new Error("Please sign in again to use lesson AI.");
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
@@ -56,7 +61,7 @@ export default function Lesson() {
     const question = (raw ?? q).trim();
     if (!question || !user) return;
     setLoading(true); setLesson(null); setSavedId(null);
-    const reason = await classifyCheatIntent(question);
+    const reason = await classifyLessonViolation(question);
     if (reason) {
       toast.error("I can only help with learning topics. This attempt was logged.", { icon: <ShieldAlert className="h-4 w-4" /> });
       await fileCheatReport({ userId: user.id, reason, context: question.slice(0, 1000) });
@@ -69,7 +74,9 @@ export default function Lesson() {
         headers: await authHeaders(),
         body: JSON.stringify({ question, grade_level: (profile as any)?.grade_level ?? "high" }),
       });
-      const j = await r.json();
+      const j = await r.json().catch(() => ({} as any));
+      if (r.status === 401) { toast.error("Please sign in again to use lesson AI."); return; }
+      if (j.reported) { toast.error(j.error || "I can only build lessons for learning topics."); return; }
       if (!r.ok || !j.lesson) { toast.error(j.error || "AI is reconnecting. Try again in a moment."); return; }
       const les: LessonT = { ...j.lesson, question };
       setLesson(les);
