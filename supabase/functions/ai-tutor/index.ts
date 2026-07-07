@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function requireUser(req: Request): Promise<string | null> {
+async function requireUser(req: Request): Promise<{ id: string; jwt: string } | null> {
   const auth = req.headers.get("Authorization") || "";
   const jwt = auth.replace(/^Bearer\s+/i, "").trim();
   if (!jwt) return null;
@@ -15,7 +15,7 @@ async function requireUser(req: Request): Promise<string | null> {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data, error } = await sb.auth.getClaims(jwt);
     if (error || !data?.claims?.sub) return null;
-    return data.claims.sub;
+    return { id: data.claims.sub, jwt };
   } catch { return null; }
 }
 
@@ -76,18 +76,20 @@ function gatewayErrorResponse(r: Response) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const userId = await requireUser(req);
-  if (!userId) {
+  const user = await requireUser(req);
+  if (!user) {
     return new Response(JSON.stringify({ error: "Unauthorized — please sign in." }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+  const userId = user.id;
 
   // Server-side per-user rate limit: max 60 AI calls per rolling 10 minutes.
   try {
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: `Bearer ${user.jwt}` } } },
     );
     const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     const { count } = await sb
