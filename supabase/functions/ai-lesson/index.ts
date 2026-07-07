@@ -61,7 +61,7 @@ function lessonViolation(question: string): string | null {
   const shortLanguage = /^[\p{L}\p{N}' -]{1,40}$/u.test(q) && q.split(/\s+/).length <= 4;
   if (/\b(write|do|complete|finish)\s+(?:my|the|this|these)?\s*(essay|homework|assignment|paper|test|exam|quiz)\b/i.test(q)) return "Asked the AI to complete graded work";
   if (/\b(porn|nude|sexy|hook ?up|kill|weapon|drugs|hack|doxx|gossip|roast|meme|dating|girlfriend|boyfriend|rizz|gyatt|skibidi|fanum tax|diddy|p\W?diddy|kanye|drake|kardashian|tiktok|instagram|snapchat|fortnite|roblox|gta|who\s+is\s+better|rank\s+(?:these|them)|rate\s+(?:this|me|them))\b/i.test(q)) return "Non-academic or unsafe lesson request";
-  if (academic || shortLanguage) return null;
+  if (shortLanguage || academic) return null;
   return "Non-academic lesson request";
 }
 

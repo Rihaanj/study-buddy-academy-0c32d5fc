@@ -66,9 +66,9 @@ export async function classifyLessonViolation(prompt: string): Promise<string | 
   if (!p) return null;
   const obvious = obviousCheat(p);
   if (obvious) return obvious;
-  if (ACADEMIC_SIGNALS.some((re) => re.test(p))) return null;
   // Single words and short phrases can be valid language lessons, e.g. "hello".
   if (/^[\p{L}\p{N}' -]{1,40}$/u.test(p) && p.split(/\s+/).length <= 4) return null;
+  if (ACADEMIC_SIGNALS.some((re) => re.test(p))) return null;
   return (await classifyCheatIntent(p)) || "Non-academic lesson request";
 }
 
