@@ -81,6 +81,7 @@ export function VoiceMicButton() {
   const speechRef = useRef<any>(null);
   const speechTextRef = useRef("");
   const interimTextRef = useRef("");
+  const speechConfidenceRef = useRef(0);
   const chunksRef = useRef<Float32Array[]>([]);
   const startedAt = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -105,7 +106,7 @@ export function VoiceMicButton() {
       const source = ctx.createMediaStreamSource(stream);
       const processor = ctx.createScriptProcessor(4096, 1, 1);
       const silent = ctx.createGain(); silent.gain.value = 0;
-      chunksRef.current = []; speechTextRef.current = ""; interimTextRef.current = "";
+      chunksRef.current = []; speechTextRef.current = ""; interimTextRef.current = ""; speechConfidenceRef.current = 0;
       processor.onaudioprocess = (e) => { chunksRef.current.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
       source.connect(processor); processor.connect(silent); silent.connect(ctx.destination);
       streamRef.current = stream; ctxRef.current = ctx; sourceRef.current = source; processorRef.current = processor;
@@ -122,6 +123,7 @@ export function VoiceMicButton() {
             const transcript = ev.results[i][0]?.transcript || "";
             if (ev.results[i].isFinal) finalText += transcript;
             else interimText += transcript;
+            speechConfidenceRef.current = Math.max(speechConfidenceRef.current, ev.results[i][0]?.confidence || 0);
           }
           if (finalText.trim()) speechTextRef.current = finalText.trim();
           interimTextRef.current = interimText.trim();
@@ -180,7 +182,9 @@ export function VoiceMicButton() {
     await cleanup();
 
     try {
-      let text = speechTextRef.current.trim() || interimTextRef.current.trim();
+      let text = "";
+      const browserText = speechTextRef.current.trim() || interimTextRef.current.trim();
+      if (browserText && speechConfidenceRef.current >= 0.82) text = browserText;
       if (!text) {
         const blob = encodeWav(chunks, sampleRate);
         if (dur < 0.5 || blob.size < 2048) { toast.error("Too short. Hold and speak."); return; }
@@ -191,8 +195,12 @@ export function VoiceMicButton() {
         });
         const j = await r.json().catch(() => ({} as any));
         if (r.status === 401) { await playReply("Please sign in again before using voice."); return; }
-        if (!r.ok || j.error) { toast.error(j.error || "Couldn't hear you. Try again."); return; }
-        text = String(j.transcript || "").trim();
+        if (!r.ok || j.error) {
+          if (browserText) text = browserText;
+          else { toast.error(j.error || "Couldn't hear you. Try again."); return; }
+        } else {
+          text = String(j.transcript || "").trim() || browserText;
+        }
       }
       if (!text) { toast.error("No speech detected."); return; }
 
@@ -212,7 +220,7 @@ export function VoiceMicButton() {
     } catch (e: any) {
       toast.error(e.message || "Voice failed");
     } finally {
-      chunksRef.current = []; speechTextRef.current = ""; interimTextRef.current = ""; setBusy(false);
+      chunksRef.current = []; speechTextRef.current = ""; interimTextRef.current = ""; speechConfidenceRef.current = 0; setBusy(false);
     }
   };
 
