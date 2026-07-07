@@ -49,7 +49,7 @@ serve(async (req) => {
         voice: "alloy",
         response_format: "mp3",
         stream_format: "audio",
-        instructions: "Speak warmly and clearly like a friendly study buddy.",
+        instructions: "Speak warmly and naturally like a friendly study buddy. Use a moderate pace, not slow and not rushed.",
       }),
     });
 

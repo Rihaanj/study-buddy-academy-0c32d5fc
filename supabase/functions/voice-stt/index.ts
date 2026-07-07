@@ -71,14 +71,13 @@ serve(async (req) => {
 
     const fd = new FormData();
     fd.append("file", blob, `recording.${ext}`);
-    fd.append("model", "openai/gpt-4o-mini-transcribe");
+    fd.append("model", "openai/gpt-4o-transcribe");
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20_000);
     const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableKey}`,
         "Lovable-API-Key": lovableKey,
         "X-Lovable-AIG-SDK": "raw-edge-function",
       },
