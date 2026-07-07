@@ -69,7 +69,7 @@ export async function classifyLessonViolation(prompt: string): Promise<string | 
   if (ACADEMIC_SIGNALS.some((re) => re.test(p))) return null;
   // Single words and short phrases can be valid language lessons, e.g. "hello".
   if (/^[\p{L}\p{N}' -]{1,40}$/u.test(p) && p.split(/\s+/).length <= 4) return null;
-  return await classifyCheatIntent(p);
+  return (await classifyCheatIntent(p)) || "Non-academic lesson request";
 }
 
 export async function fileCheatReport(opts: { userId: string; reason: string; context: string }) {
