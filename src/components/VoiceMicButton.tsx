@@ -9,7 +9,12 @@ const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-tts`;
 
 async function authHeaders() {
   const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  let token = data.session?.access_token;
+  if (!token) {
+    const refreshed = await supabase.auth.refreshSession();
+    token = refreshed.data.session?.access_token;
+  }
+  if (!token) throw new Error("Please sign in again to use voice.");
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
@@ -75,6 +80,7 @@ export function VoiceMicButton() {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const speechRef = useRef<any>(null);
   const speechTextRef = useRef("");
+  const interimTextRef = useRef("");
   const chunksRef = useRef<Float32Array[]>([]);
   const startedAt = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -99,7 +105,7 @@ export function VoiceMicButton() {
       const source = ctx.createMediaStreamSource(stream);
       const processor = ctx.createScriptProcessor(4096, 1, 1);
       const silent = ctx.createGain(); silent.gain.value = 0;
-      chunksRef.current = []; speechTextRef.current = "";
+      chunksRef.current = []; speechTextRef.current = ""; interimTextRef.current = "";
       processor.onaudioprocess = (e) => { chunksRef.current.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
       source.connect(processor); processor.connect(silent); silent.connect(ctx.destination);
       streamRef.current = stream; ctxRef.current = ctx; sourceRef.current = source; processorRef.current = processor;
@@ -108,10 +114,17 @@ export function VoiceMicButton() {
       const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SR) {
         const rec = new SR(); rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true;
+        rec.maxAlternatives = 1;
         rec.onresult = (ev: any) => {
-          let t = "";
-          for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0]?.transcript || "";
-          speechTextRef.current = t.trim();
+          let finalText = "";
+          let interimText = "";
+          for (let i = 0; i < ev.results.length; i++) {
+            const transcript = ev.results[i][0]?.transcript || "";
+            if (ev.results[i].isFinal) finalText += transcript;
+            else interimText += transcript;
+          }
+          if (finalText.trim()) speechTextRef.current = finalText.trim();
+          interimTextRef.current = interimText.trim();
         };
         rec.onerror = () => undefined; rec.onend = () => undefined;
         speechRef.current = rec;
@@ -131,15 +144,21 @@ export function VoiceMicButton() {
     const synth = window.speechSynthesis;
     if (!synth) return false;
     synth.cancel();
+    const voices = synth.getVoices?.() || [];
+    const voice = voices.find((v) => /natural|samantha|aria|jenny|google us english|english united states/i.test(v.name))
+      || voices.find((v) => /^en[-_]/i.test(v.lang));
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 1;
+    if (voice) utterance.voice = voice;
+    utterance.rate = 0.98;
     utterance.pitch = 1;
+    utterance.volume = 1;
     synth.speak(utterance);
     return true;
   };
 
   const playReply = async (text: string) => {
+    if (speakWithBrowser(text)) return;
     try {
       const r = await fetch(TTS_URL, { method: "POST", headers: await authHeaders(), body: JSON.stringify({ text: text.slice(0, 1000) }) });
       if (!r.ok) { speakWithBrowser(text); return; }
@@ -161,7 +180,7 @@ export function VoiceMicButton() {
     await cleanup();
 
     try {
-      let text = speechTextRef.current.trim();
+      let text = speechTextRef.current.trim() || interimTextRef.current.trim();
       if (!text) {
         const blob = encodeWav(chunks, sampleRate);
         if (dur < 0.5 || blob.size < 2048) { toast.error("Too short. Hold and speak."); return; }
@@ -171,6 +190,7 @@ export function VoiceMicButton() {
           body: JSON.stringify({ audioBase64: await blobToBase64(blob), mimeType: "audio/wav", durationSec: dur }),
         });
         const j = await r.json().catch(() => ({} as any));
+        if (r.status === 401) { await playReply("Please sign in again before using voice."); return; }
         if (!r.ok || j.error) { toast.error(j.error || "Couldn't hear you. Try again."); return; }
         text = String(j.transcript || "").trim();
       }
@@ -184,6 +204,7 @@ export function VoiceMicButton() {
         body: JSON.stringify({ message: text, history: history.slice(-6) }),
       });
       const cj = await cr.json().catch(() => ({} as any));
+      if (cr.status === 401) { await playReply("Please sign in again before using voice."); return; }
       const reply = String(cj.reply || "").trim() || "Hey! What do you want to study?";
       history.push({ role: "assistant", content: reply });
       toast.success("Speaking…");
@@ -191,7 +212,7 @@ export function VoiceMicButton() {
     } catch (e: any) {
       toast.error(e.message || "Voice failed");
     } finally {
-      chunksRef.current = []; speechTextRef.current = ""; setBusy(false);
+      chunksRef.current = []; speechTextRef.current = ""; interimTextRef.current = ""; setBusy(false);
     }
   };
 
