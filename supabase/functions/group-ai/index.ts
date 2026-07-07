@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,9 +16,9 @@ async function requireUser(req: Request): Promise<string | null> {
   if (!jwt) return null;
   try {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data, error } = await sb.auth.getUser(jwt);
-    if (error || !data?.user) return null;
-    return data.user.id;
+    const { data, error } = await sb.auth.getClaims(jwt);
+    if (error || !data?.claims?.sub) return null;
+    return data.claims.sub;
   } catch { return null; }
 }
 

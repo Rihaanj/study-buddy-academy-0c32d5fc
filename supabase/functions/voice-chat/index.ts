@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,15 +13,16 @@ async function requireUser(req: Request): Promise<string | null> {
   if (!jwt) return null;
   try {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data, error } = await sb.auth.getUser(jwt);
-    if (error || !data?.user) return null;
-    return data.user.id;
+    const { data, error } = await sb.auth.getClaims(jwt);
+    if (error || !data?.claims?.sub) return null;
+    return data.claims.sub;
   } catch { return null; }
 }
 
 const SYS = `You are Study Bud, a friendly voice buddy for students. This is a spoken chat, NOT a lesson.
 Rules:
-- Reply in 1-3 short sentences, conversational and warm, like a friend talking back.
+- First understand the user's exact words, then answer that exact thing accurately.
+- Reply in 1-2 short sentences, conversational and warm, like a real human friend talking back.
 - If greeted ("hi", "hello", "what's up"), greet back naturally and ask what they want to do.
 - If the user asks a factual/study question, give a brief spoken answer and offer to open a full lesson if they want.
 - No lists, no markdown, no headings, no code fences. Plain ASCII only.
@@ -65,7 +66,7 @@ serve(async (req) => {
         "X-Lovable-AIG-SDK": "raw-edge-function",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model: "openai/gpt-5.5", messages: msgs, max_completion_tokens: 90 }),
+      body: JSON.stringify({ model: "google/gemini-2.5-flash-lite", messages: msgs, max_tokens: 70, temperature: 0.3 }),
     });
     if (!r.ok) {
       const err = await r.text().catch(() => "");

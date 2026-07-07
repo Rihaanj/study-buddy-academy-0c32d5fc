@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,27 +31,49 @@ async function requireUser(req: Request): Promise<{ id: string; jwt: string } | 
   if (!jwt) return null;
   try {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data, error } = await sb.auth.getUser(jwt);
-    if (error || !data?.user) return null;
-    return { id: data.user.id, jwt };
+    const { data, error } = await sb.auth.getClaims(jwt);
+    if (error || !data?.claims?.sub) return null;
+    return { id: data.claims.sub, jwt };
   } catch { return null; }
 }
 
 async function callGateway(body: any) {
   const KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!KEY) throw new Error("LOVABLE_API_KEY missing");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 28_000);
   return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${KEY}`,
-      "Lovable-API-Key": KEY || "",
+      "Lovable-API-Key": KEY,
       "X-Lovable-AIG-SDK": "raw-edge-function",
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
     signal: controller.signal,
   }).finally(() => clearTimeout(timeout));
+}
+
+function lessonViolation(question: string): string | null {
+  const q = cleanAscii(question).toLowerCase();
+  if (!q) return null;
+  const academic = /\b(explain|teach|learn|lesson|define|meaning|history|science|math|english|grammar|language|biology|chemistry|physics|geography|civics|economics|coding|programming|study|school|example|why|how)\b/i.test(q);
+  const shortLanguage = /^[\p{L}\p{N}' -]{1,40}$/u.test(q) && q.split(/\s+/).length <= 4;
+  if (/\b(write|do|complete|finish)\s+(?:my|the|this|these)?\s*(essay|homework|assignment|paper|test|exam|quiz)\b/i.test(q)) return "Asked the AI to complete graded work";
+  if (/\b(porn|nude|sexy|hook ?up|kill|weapon|drugs|hack|doxx|gossip|roast|meme|dating|girlfriend|boyfriend|rizz|gyatt|skibidi|fanum tax|diddy|p\W?diddy|kanye|drake|kardashian|tiktok|instagram|snapchat|fortnite|roblox|gta|who\s+is\s+better|rank\s+(?:these|them)|rate\s+(?:this|me|them))\b/i.test(q)) return "Non-academic or unsafe lesson request";
+  if (shortLanguage || academic) return null;
+  return "Non-academic lesson request";
+}
+
+async function fileServerReport(user: { id: string; jwt: string }, reason: string, context: string) {
+  try {
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: `Bearer ${user.jwt}` } },
+    });
+    await sb.from("cheat_reports").insert({ user_id: user.id, reason, context: context.slice(0, 2000) });
+  } catch (e) {
+    console.error("lesson report failed", e);
+  }
 }
 
 function cleanAscii(input: unknown): string {
@@ -239,6 +261,14 @@ serve(async (req) => {
       });
     }
     requestedQuestion = question;
+    const violation = lessonViolation(question);
+    if (violation) {
+      await fileServerReport(user, violation, question);
+      return new Response(JSON.stringify({ error: "I can only build lessons for learning topics. This attempt was logged.", reported: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!Deno.env.get("LOVABLE_API_KEY")) {
       const lesson = normalizeLesson(null, question);
       lesson.youtube_videos = [];

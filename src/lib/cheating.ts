@@ -18,6 +18,11 @@ const OFF_TOPIC: RegExp[] = [
   /\b(rizz|sigma|gyatt|skibidi|ohio|fanum tax|mewing)\b/i,
   /\b(dating|crush|girlfriend|boyfriend|hook ?up|sexy|nude|porn)\b/i,
   /\b(joke|roast|meme|gossip|tea|drama)\s+(about|on)\b/i,
+  /\b(who\s+is\s+better|rank\s+(?:these|them)|rate\s+(?:this|me|them)|celebrity\s+gossip)\b/i,
+];
+
+const ACADEMIC_SIGNALS: RegExp[] = [
+  /\b(explain|teach|learn|lesson|define|meaning|history|science|math|english|grammar|language|biology|chemistry|physics|geography|civics|economics|coding|programming|study|school|homework help|example|why|how)\b/i,
 ];
 
 function obviousCheat(prompt: string): string | null {
@@ -38,7 +43,12 @@ export async function classifyCheatIntent(prompt: string): Promise<string | null
   if ((prompt || "").trim().length < 3) return null;
   try {
     const { data: sess } = await supabase.auth.getSession();
-    const token = sess.session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    let token = sess.session?.access_token;
+    if (!token) {
+      const refreshed = await supabase.auth.refreshSession();
+      token = refreshed.data.session?.access_token;
+    }
+    if (!token) return null;
     const r = await fetch(FN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
@@ -51,15 +61,27 @@ export async function classifyCheatIntent(prompt: string): Promise<string | null
   return null;
 }
 
+export async function classifyLessonViolation(prompt: string): Promise<string | null> {
+  const p = (prompt || "").trim();
+  if (!p) return null;
+  const obvious = obviousCheat(p);
+  if (obvious) return obvious;
+  // Single words and short phrases can be valid language lessons, e.g. "hello".
+  if (/^[\p{L}\p{N}' -]{1,40}$/u.test(p) && p.split(/\s+/).length <= 4) return null;
+  if (ACADEMIC_SIGNALS.some((re) => re.test(p))) return null;
+  return (await classifyCheatIntent(p)) || "Non-academic lesson request";
+}
+
 export async function fileCheatReport(opts: { userId: string; reason: string; context: string }) {
   const { data: profile } = await supabase
     .from("profiles").select("name").eq("user_id", opts.userId).maybeSingle();
-  await supabase.from("cheat_reports").insert({
+  const { error } = await supabase.from("cheat_reports").insert({
     user_id: opts.userId,
     user_name: profile?.name ?? null,
     reason: opts.reason,
     context: opts.context.slice(0, 2000),
   });
+  if (error) console.warn("Could not file report", error.message);
 }
 
 // Re-export synchronous API for backward compat
