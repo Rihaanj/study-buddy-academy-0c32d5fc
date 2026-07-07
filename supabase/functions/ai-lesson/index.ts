@@ -31,9 +31,9 @@ async function requireUser(req: Request): Promise<{ id: string; jwt: string } | 
   if (!jwt) return null;
   try {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
-    const { data, error } = await sb.auth.getUser(jwt);
-    if (error || !data?.user) return null;
-    return { id: data.user.id, jwt };
+    const { data, error } = await sb.auth.getClaims(jwt);
+    if (error || !data?.claims?.sub) return null;
+    return { id: data.claims.sub, jwt };
   } catch { return null; }
 }
 
