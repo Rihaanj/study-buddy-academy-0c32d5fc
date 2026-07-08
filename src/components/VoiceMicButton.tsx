@@ -107,8 +107,7 @@ export function VoiceMicButton() {
       }
       // Proactive permission check for clearer errors
       try {
-        // @ts-expect-error - PermissionName includes "microphone" in most browsers
-        const status = await navigator.permissions?.query?.({ name: "microphone" });
+        const status = await (navigator.permissions as any)?.query?.({ name: "microphone" });
         if (status?.state === "denied") {
           toast.error("Mic blocked. Click the lock icon in the address bar and allow the microphone.");
           return;
