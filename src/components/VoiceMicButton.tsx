@@ -99,7 +99,21 @@ export function VoiceMicButton() {
   const start = async () => {
     try {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-      if (!navigator.mediaDevices?.getUserMedia) { toast.error("Voice input not supported in this browser"); return; }
+      if (!window.isSecureContext) { toast.error("Voice needs HTTPS. Open the published app URL."); return; }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const inIframe = window.self !== window.top;
+        toast.error(inIframe ? "Mic blocked in preview. Open the app in a new tab to use voice." : "Voice input not supported in this browser");
+        return;
+      }
+      // Proactive permission check for clearer errors
+      try {
+        const status = await (navigator.permissions as any)?.query?.({ name: "microphone" });
+        if (status?.state === "denied") {
+          toast.error("Mic blocked. Click the lock icon in the address bar and allow the microphone.");
+          return;
+        }
+      } catch { /* not supported, continue */ }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioCtx();
@@ -137,9 +151,20 @@ export function VoiceMicButton() {
       toast.success("Listening…");
     } catch (e: any) {
       await cleanup();
-      if (e?.name === "NotAllowedError") toast.error("Mic access denied. Enable it in browser settings.");
-      else if (e?.name === "NotFoundError") toast.error("No microphone found");
-      else toast.error(e?.message || "Mic access denied");
+      const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
+      const name = e?.name || "";
+      const msg = String(e?.message || "").toLowerCase();
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        if (inIframe || msg.includes("permissions policy") || msg.includes("permission policy")) {
+          toast.error("Mic blocked by preview iframe. Open the app in a new tab to talk.");
+        } else if (msg.includes("dismissed") || msg.includes("system")) {
+          toast.error("Mic prompt was dismissed. Click the mic again and choose Allow.");
+        } else {
+          toast.error("Mic access denied. Click the lock icon in the address bar and allow the microphone.");
+        }
+      } else if (name === "NotFoundError") toast.error("No microphone found");
+      else if (name === "NotReadableError") toast.error("Microphone is in use by another app.");
+      else toast.error(e?.message || "Could not access microphone");
     }
   };
 

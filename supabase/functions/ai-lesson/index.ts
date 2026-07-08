@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MODEL = "openai/gpt-5.5";
+const MODEL = "google/gemini-2.5-flash";
 
 const SAFETY = `
 SAFETY & SCOPE:
@@ -41,7 +41,7 @@ async function callGateway(body: any) {
   const KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!KEY) throw new Error("LOVABLE_API_KEY missing");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 28_000);
+  const timeout = setTimeout(() => controller.abort(), 18_000);
   return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
