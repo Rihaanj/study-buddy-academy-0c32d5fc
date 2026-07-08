@@ -46,10 +46,11 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "openai/gpt-4o-mini-tts",
         input: trimmed,
-        voice: "alloy",
+        voice: "ash",
         response_format: "mp3",
         stream_format: "audio",
-        instructions: "Speak warmly and naturally like a friendly study buddy. Use a moderate pace, not slow and not rushed.",
+        speed: 1.05,
+        instructions: "You are a friendly, natural-sounding male study buddy in his early 20s. Speak in a warm, confident, conversational tone with clear articulation and natural human intonation. Moderate pace, never robotic, never monotone. Sound like a real person casually chatting.",
       }),
     });
 
