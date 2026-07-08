@@ -173,29 +173,35 @@ export function VoiceMicButton() {
     if (!synth) return false;
     synth.cancel();
     const voices = synth.getVoices?.() || [];
-    const voice = voices.find((v) => /natural|samantha|aria|jenny|google us english|english united states/i.test(v.name))
+    // Prefer a natural-sounding MALE English voice
+    const male = voices.find((v) => /(daniel|alex|fred|aaron|arthur|oliver|george|tom|reed|rocko)/i.test(v.name) && /^en[-_]/i.test(v.lang))
+      || voices.find((v) => /google uk english male|google us english.*male|microsoft (guy|davis|brian|ryan|tony)/i.test(v.name))
+      || voices.find((v) => /male/i.test(v.name) && /^en[-_]/i.test(v.lang))
       || voices.find((v) => /^en[-_]/i.test(v.lang));
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    if (voice) utterance.voice = voice;
-    utterance.rate = 0.98;
-    utterance.pitch = 1;
+    if (male) utterance.voice = male;
+    utterance.rate = 1.02;
+    utterance.pitch = 0.9;
     utterance.volume = 1;
     synth.speak(utterance);
     return true;
   };
 
   const playReply = async (text: string) => {
-    if (speakWithBrowser(text)) return;
+    // Prefer server TTS (natural male voice) over browser SpeechSynthesis
     try {
       const r = await fetch(TTS_URL, { method: "POST", headers: await authHeaders(), body: JSON.stringify({ text: text.slice(0, 1000) }) });
-      if (!r.ok) { speakWithBrowser(text); return; }
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = new Audio(url);
-      audioRef.current = a;
-      await a.play().catch(() => { speakWithBrowser(text); });
-    } catch { speakWithBrowser(text); }
+      if (r.ok) {
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = new Audio(url);
+        audioRef.current = a;
+        await a.play();
+        return;
+      }
+    } catch { /* fall through */ }
+    speakWithBrowser(text);
   };
 
   const stop = async () => {
@@ -210,7 +216,8 @@ export function VoiceMicButton() {
     try {
       let text = "";
       const browserText = speechTextRef.current.trim() || interimTextRef.current.trim();
-      if (browserText && speechFinalRef.current && (speechConfidenceRef.current === 0 || speechConfidenceRef.current >= 0.65)) text = browserText;
+      // Trust browser transcript aggressively for speed (skip server STT round-trip)
+      if (browserText) text = browserText;
       if (!text) {
         const blob = encodeWav(chunks, sampleRate);
         if (dur < 0.5 || blob.size < 2048) { toast.error("Too short. Hold and speak."); return; }
