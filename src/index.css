@@ -92,8 +92,22 @@ a[aria-label*="Lovable"] {
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
     background-image: var(--gradient-nebula);
     background-attachment: fixed;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, hsl(220 100% 70% / 0.18), transparent 70%),
+      linear-gradient(120deg, transparent 30%, hsl(270 100% 75% / 0.08) 50%, transparent 70%);
+    animation: shine-sweep 14s ease-in-out infinite;
   }
   h1, h2, h3, h4 { font-family: 'Space Grotesk', 'Inter', sans-serif; letter-spacing: -0.01em; }
+}
+
+@keyframes shine-sweep {
+  0%, 100% { opacity: 0.85; transform: translateX(-3%); }
+  50% { opacity: 1; transform: translateX(3%); }
 }
 
 @layer components {
