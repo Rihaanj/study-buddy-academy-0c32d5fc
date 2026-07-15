@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AIResponse } from "@/components/AIResponse";
 import FollowUpGate from "@/components/FollowUpGate";
-import { BookOpen, FlaskConical, Repeat, ImageIcon, History, Loader2, Sparkles, ShieldAlert, Mic, Flame, Eye, Volume2, Square } from "lucide-react";
+import { BookOpen, FlaskConical, Repeat, ImageIcon, History, Loader2, Sparkles, ShieldAlert, Flame, Eye, Volume2, Square } from "lucide-react";
 const logoUrl = "/icons/icon-512.png";
 import { toast } from "sonner";
 import { awardXp, getActiveXpMultiplier, computeTestXpDelta, type TestDifficulty } from "@/lib/gamification";
@@ -21,7 +21,6 @@ import Lesson from "@/components/Lesson";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-tutor`;
 const TTS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-tts`;
-const STT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-stt`;
 async function aiAuthHeaders() {
   const { data } = await supabase.auth.getSession();
   let token = data.session?.access_token;
