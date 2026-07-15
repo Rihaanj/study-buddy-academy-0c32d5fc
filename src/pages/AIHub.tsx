@@ -459,7 +459,6 @@ export default function AIHub() {
           <TabsTrigger value="exam"><Flame className="h-4 w-4 mr-1.5" />Exam Sim</TabsTrigger>
           <TabsTrigger value="practice"><Repeat className="h-4 w-4 mr-1.5" />Practice</TabsTrigger>
           <TabsTrigger value="visual"><Eye className="h-4 w-4 mr-1.5" />Visual</TabsTrigger>
-          <TabsTrigger value="voice"><Mic className="h-4 w-4 mr-1.5" />Voice Lab</TabsTrigger>
           <TabsTrigger value="analytics"><History className="h-4 w-4 mr-1.5" />History</TabsTrigger>
         </TabsList>
         <TabsContent value="lesson" className="mt-4"><Lesson /></TabsContent>
@@ -468,7 +467,6 @@ export default function AIHub() {
         <TabsContent value="exam" className="mt-4"><ExamSim /></TabsContent>
         <TabsContent value="practice" className="mt-4"><Practice /></TabsContent>
         <TabsContent value="visual" className="mt-4"><VisualDecoder /></TabsContent>
-        <TabsContent value="voice" className="mt-4"><VoiceLab /></TabsContent>
         <TabsContent value="analytics" className="mt-4"><StudyAnalytics /></TabsContent>
       </Tabs>
     </div>
