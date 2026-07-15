@@ -10,7 +10,7 @@ import { UserAvatar } from "./UserAvatar";
 import { XpBar } from "./XpBar";
 import { ReviewPrompt } from "./ReviewPrompt";
 import { OnboardingTour } from "./OnboardingTour";
-import { VoiceMicButton } from "./VoiceMicButton";
+
 import { GradeLevelPrompt } from "./GradeLevelPrompt";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
