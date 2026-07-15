@@ -10,7 +10,7 @@ import { UserAvatar } from "./UserAvatar";
 import { XpBar } from "./XpBar";
 import { ReviewPrompt } from "./ReviewPrompt";
 import { OnboardingTour } from "./OnboardingTour";
-import { VoiceMicButton } from "./VoiceMicButton";
+
 import { GradeLevelPrompt } from "./GradeLevelPrompt";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,7 +118,7 @@ export const AppLayout = () => {
                 <span className="text-[11px] text-muted-foreground">⚡ {profile.xp} XP · 🔥 {profile.streak}</span>
                 <XpBar xp={profile.xp} compact />
               </div>
-              <VoiceMicButton />
+              
               <NavLink to="/profile" aria-label="Profile" className="shrink-0">
                 <UserAvatar url={profile.avatar_url} name={profile.name} />
               </NavLink>
