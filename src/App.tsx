@@ -8,7 +8,9 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
 import { AppLayout } from "@/components/AppLayout";
 import Login from "@/pages/Login";
+import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
+
 import Planner from "@/pages/Planner";
 import Focus from "@/pages/Focus";
 import Chat from "@/pages/Chat";
