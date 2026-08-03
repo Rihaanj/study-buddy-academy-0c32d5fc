@@ -45,10 +45,12 @@ const App = () => (
         <AuthProvider>
           <FocusProvider>
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route element={<Protected />}>
-                <Route path="/" element={<Home />} />
+                <Route path="/app" element={<Home />} />
                 <Route path="/planner" element={<Planner />} />
+
                 <Route path="/focus" element={<Focus />} />
                 <Route path="/chat" element={<Chat />} />
                 
