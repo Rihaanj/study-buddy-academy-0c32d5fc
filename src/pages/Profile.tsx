@@ -52,7 +52,7 @@ export default function Profile() {
             <h1 className="text-2xl sm:text-3xl font-bold truncate">
               {profile.name ?? "Student"}
             </h1>
-            <p className="text-muted-foreground text-sm truncate">{profile.email}</p>
+            <p className="text-muted-foreground text-sm truncate">Lv {profile.level} · {profile.xp} XP</p>
             <p className="text-sm mt-1">
               <span className="gradient-text font-bold">Lv {profile.level}</span> · {stageLabel(profile.avatar?.evolutionStage ?? "student")} · ⚡ {profile.xp} XP
             </p>

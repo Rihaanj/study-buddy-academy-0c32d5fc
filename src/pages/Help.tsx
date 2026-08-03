@@ -15,7 +15,7 @@ const SECTIONS: { title: string; emoji: string; items: string[] }[] = [
   {
     title: "Getting Started", emoji: "🚀",
     items: [
-      "Sign in with Google or email — your data is private to you",
+      "Create an account with your first and last name plus a password — your data is private to you",
       "Visit every main tab to unlock the Explorer badge",
       "Set up your profile photo from the Profile tab",
     ],
@@ -96,7 +96,7 @@ const SECTIONS: { title: string; emoji: string; items: string[] }[] = [
   {
     title: "Friends & Chat 👥", emoji: "👥",
     items: [
-      "Add friends by email — they receive a request",
+      "Add friends by their name — they receive a request",
       "Friending someone auto-creates a private DM with them",
       "Group chats are separate — see DMs and groups in different lists",
       "Search bar finds chats fast",

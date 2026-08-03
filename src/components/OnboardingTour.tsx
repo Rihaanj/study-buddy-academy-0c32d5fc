@@ -80,7 +80,7 @@ const STEPS: Step[] = [
     icon: Users, emoji: "🤝",
     hype: "Stop #7 — Friends",
     title: "Build your crew",
-    body: "Add friends by email or username. Once they accept, you can DM, see their stats, and battle on the weekly leaderboard.",
+    body: "Add friends by their first and last name. Once they accept, you can DM, see their stats, and battle on the weekly leaderboard.",
     route: "/friends",
   },
   {
