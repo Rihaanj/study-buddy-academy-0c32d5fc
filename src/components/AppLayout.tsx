@@ -19,7 +19,7 @@ import { runDueDateNotifier } from "@/lib/notifications";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TAB_HINTS: Record<string, string> = {
-  "/": "Your dashboard — quick stats, today's tasks, and shortcuts.",
+  "/app": "Your dashboard — quick stats, today's tasks, and shortcuts.",
   "/planner": "Add assignments and tasks. Smart priority sorts what to do first.",
   "/calendar": "See deadlines, study sessions, and events on a calendar view.",
   "/focus": "Pomodoro-style focus timer. Earns the most XP in the app.",
@@ -37,7 +37,7 @@ const TAB_HINTS: Record<string, string> = {
 };
 
 const baseTabs = [
-  { to: "/", label: "Home", icon: Home, end: true },
+  { to: "/app", label: "Home", icon: Home, end: true },
   { to: "/planner", label: "Planner", icon: ListChecks },
   { to: "/calendar", label: "Cal", icon: Calendar },
   { to: "/focus", label: "Focus", icon: Timer },
