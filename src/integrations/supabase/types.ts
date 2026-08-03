@@ -98,6 +98,24 @@ export type Database = {
         }
         Relationships: []
       }
+      app_counters: {
+        Row: {
+          key: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           category: string
@@ -832,16 +850,20 @@ export type Database = {
           created_at: string
           current_focus_started_at: string | null
           email: string | null
+          first_name: string | null
           focus_streak: number
           grade_level: string | null
           id: string
           last_active_date: string | null
           last_buff_activated_at: string | null
+          last_name: string | null
           last_review_prompt_at: string | null
           last_task_xp_at: string | null
           level: number
+          login_key: string | null
           name: string | null
           pack_pity_count: number
+          recovery_email: string | null
           streak: number
           updated_at: string
           user_id: string
@@ -857,16 +879,20 @@ export type Database = {
           created_at?: string
           current_focus_started_at?: string | null
           email?: string | null
+          first_name?: string | null
           focus_streak?: number
           grade_level?: string | null
           id?: string
           last_active_date?: string | null
           last_buff_activated_at?: string | null
+          last_name?: string | null
           last_review_prompt_at?: string | null
           last_task_xp_at?: string | null
           level?: number
+          login_key?: string | null
           name?: string | null
           pack_pity_count?: number
+          recovery_email?: string | null
           streak?: number
           updated_at?: string
           user_id: string
@@ -882,16 +908,20 @@ export type Database = {
           created_at?: string
           current_focus_started_at?: string | null
           email?: string | null
+          first_name?: string | null
           focus_streak?: number
           grade_level?: string | null
           id?: string
           last_active_date?: string | null
           last_buff_activated_at?: string | null
+          last_name?: string | null
           last_review_prompt_at?: string | null
           last_task_xp_at?: string | null
           level?: number
+          login_key?: string | null
           name?: string | null
           pack_pity_count?: number
+          recovery_email?: string | null
           streak?: number
           updated_at?: string
           user_id?: string
@@ -909,24 +939,27 @@ export type Database = {
           created_at: string
           id: string
           rating: number
+          reviewer_name: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           comment?: string | null
           created_at?: string
           id?: string
           rating: number
+          reviewer_name?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           comment?: string | null
           created_at?: string
           id?: string
           rating?: number
+          reviewer_name?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1216,6 +1249,7 @@ export type Database = {
         Returns: undefined
       }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      bump_visitor: { Args: never; Returns: number }
       ensure_weekly_score: { Args: { _user_id: string }; Returns: undefined }
       has_pending_friend_request: {
         Args: { _a: string; _b: string }
@@ -1243,6 +1277,7 @@ export type Database = {
       }
       iso_monday: { Args: { _d: string }; Returns: string }
       level_from_xp: { Args: { _xp: number }; Returns: number }
+      public_stats: { Args: never; Returns: Json }
       refresh_weekly_score: { Args: { _user_id: string }; Returns: undefined }
       search_users: {
         Args: { _q: string }
