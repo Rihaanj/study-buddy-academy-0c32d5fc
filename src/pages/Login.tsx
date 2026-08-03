@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Brain, Target, Trophy, ArrowRight, Lock, User as UserIcon } from "lucide-react";
 import { SeoHead } from "@/components/SeoHead";
-import { validateSignup } from "@/lib/authName";
+import { loginKeyFrom, validateSignup } from "@/lib/authName";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const logoUrl = "/icons/icon-512.png";
@@ -21,7 +22,7 @@ const features = [
 export default function Login() {
   const { signInWithName, signUpWithName, user, loading } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signup");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signup");
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [password, setPassword] = useState("");
@@ -48,6 +49,23 @@ export default function Login() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    if (mode === "reset") {
+      if (!first.trim() || !last.trim() || !recoveryEmail.trim() || password.length < 8) {
+        toast.error("Enter your name, recovery email, and a new password (8+ characters).");
+        return;
+      }
+      setBusy(true);
+      const { data, error } = await supabase.functions.invoke("reset-password", {
+        body: { login_key: loginKeyFrom(first, last), recovery_email: recoveryEmail, new_password: password },
+      });
+      setBusy(false);
+      const failure = (data as any)?.error ?? (error ? "We could not verify that account." : null);
+      if (failure) { toast.error(failure); return; }
+      toast.success("Password updated — sign in with your new password.");
+      setMode("signin");
+      setPassword("");
+      return;
+    }
     if (mode === "signup") {
       const problem = validateSignup(first, last, password);
       if (problem) { toast.error(problem); return; }
@@ -108,7 +126,7 @@ export default function Login() {
                   type="button"
                   onClick={() => setMode(m)}
                   className={`h-9 rounded-lg text-sm font-medium transition-all ${
-                    mode === m ? "bg-gradient-primary text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"
+                    (mode === m || (mode === "reset" && m === "signin")) ? "bg-gradient-primary text-primary-foreground shadow-glow" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {m === "signup" ? "Create account" : "Sign in"}
@@ -135,16 +153,16 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  placeholder={mode === "signin" ? "Your password" : "At least 8 characters"}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   required
                 />
               </div>
 
-              {mode === "signup" && (
+              {(mode === "signup" || mode === "reset") && (
                 <div className="space-y-1.5">
                   <Label htmlFor="recovery" className="flex items-center gap-2">
-                    Recovery email <span className="text-[10px] text-muted-foreground">(optional)</span>
+                    Recovery email {mode === "signup" && <span className="text-[10px] text-muted-foreground">(optional)</span>}
                   </Label>
                   <Input
                     id="recovery"
@@ -154,7 +172,7 @@ export default function Login() {
                     placeholder="you@example.com"
                     autoComplete="email"
                   />
-                  <p className="text-[11px] text-muted-foreground">Only used if you ever forget your password.</p>
+                  <p className="text-[11px] text-muted-foreground">{mode === "reset" ? "Must match the recovery email you signed up with." : "Only used if you ever forget your password."}</p>
                 </div>
               )}
 
@@ -168,16 +186,25 @@ export default function Login() {
                 ) : (
                   <span className="flex items-center gap-2">
                     {mode === "signup" ? <UserIcon className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                    {mode === "signup" ? "Create my account" : "Sign in"}
+                    {mode === "signup" ? "Create my account" : mode === "reset" ? "Reset password" : "Sign in"}
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </span>
                 )}
               </Button>
             </form>
 
-            <p className="text-[11px] text-muted-foreground mt-5 text-center">
-              Your name + password is your account. No email required.
-            </p>
+            <div className="mt-5 text-center space-y-2">
+              <button
+                type="button"
+                onClick={() => setMode(mode === "reset" ? "signin" : "reset")}
+                className="text-[11px] text-primary hover:underline"
+              >
+                {mode === "reset" ? "Back to sign in" : "Forgot your password?"}
+              </button>
+              <p className="text-[11px] text-muted-foreground">
+                Your name + password is your account. No email required.
+              </p>
+            </div>
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-6 animate-fade-in" style={{ animationDelay: "300ms" }}>
