@@ -31,7 +31,7 @@ const STEPS: Step[] = [
     hype: "Mission start",
     title: "Welcome aboard, future Cosmic Genius!",
     body: "You just unlocked the most fun way to study. Take a 60-second cosmic tour and we'll drop 3 mystery packs in your inventory at the end. Ready to fly?",
-    route: "/",
+    route: "/app",
     cta: "Let's go!",
   },
   {
@@ -39,7 +39,7 @@ const STEPS: Step[] = [
     hype: "Stop #1 — Home",
     title: "Your launchpad",
     body: "This is mission control. Today's tasks, your streak, weekly XP, quick shortcuts — all here. Whenever you're lost, this is home base.",
-    route: "/",
+    route: "/app",
   },
   {
     icon: ListChecks, emoji: "📋",
