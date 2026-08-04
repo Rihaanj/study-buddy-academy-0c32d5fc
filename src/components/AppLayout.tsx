@@ -126,7 +126,16 @@ export const AppLayout = () => {
               </NavLink>
             </>
           )}
+          <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" asChild aria-label="Back to home page">
+                <NavLink to="/"><Home className="h-4 w-4" /></NavLink>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Home page — visitors, hours studied & features</TooltipContent>
+          </Tooltip>
           <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out"><LogOut className="h-4 w-4" /></Button>
+
         </div>
       </header>
 
