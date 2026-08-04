@@ -106,7 +106,7 @@ export const GroupMembersDialog = ({ open, onOpenChange, group, onGroupDeleted }
                       {m.role === "host" && <Crown className="h-3.5 w-3.5 text-warning" aria-label="Host" />}
                       {m.role === "cohost" && <Shield className="h-3.5 w-3.5 text-primary" aria-label="Co-host" />}
                     </div>
-                    <div className="text-[11px] text-muted-foreground truncate">{m.profile?.email}</div>
+                    
                   </div>
                   {amHost && m.user_id !== user?.id && me?.role === "host" && m.role !== "host" && (
                     m.role === "cohost" ? (

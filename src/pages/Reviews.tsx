@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Star, Lock } from "lucide-react";
 import { format } from "date-fns";
+import { displayNameFrom } from "@/lib/authName";
 
 type Review = {
   id: string;
@@ -11,6 +12,7 @@ type Review = {
   rating: number;
   comment: string | null;
   created_at: string;
+  reviewer_name?: string | null;
 };
 
 type Reviewer = { user_id: string; name: string | null; email: string | null; avatar_url: string | null };
@@ -107,8 +109,7 @@ export default function Reviews() {
               <div key={r.id} className="glass p-4 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <div className="font-medium">{u?.name ?? "Unknown user"}</div>
-                    <div className="text-xs text-muted-foreground">{u?.email}</div>
+                    <div className="font-medium">{displayNameFrom(r.reviewer_name ?? u?.name, u?.email)}</div>
                   </div>
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((n) => (

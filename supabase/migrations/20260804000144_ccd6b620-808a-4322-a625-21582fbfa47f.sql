@@ -1,0 +1,1 @@
+DELETE FROM public.profiles WHERE login_key IN ('nova-quasar', 'test-zeta');

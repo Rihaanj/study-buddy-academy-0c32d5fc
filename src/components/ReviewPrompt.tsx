@@ -56,6 +56,7 @@ export const ReviewPrompt = () => {
     setSubmitting(true);
     const { error } = await supabase.from("reviews" as any).insert({
       user_id: user.id,
+      reviewer_name: (profile?.name ?? "").trim() || "Study Bud student",
       rating,
       comment: comment.trim() || null,
     } as any);

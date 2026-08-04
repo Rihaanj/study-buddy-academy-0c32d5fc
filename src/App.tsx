@@ -8,7 +8,9 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
 import { AppLayout } from "@/components/AppLayout";
 import Login from "@/pages/Login";
+import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
+
 import Planner from "@/pages/Planner";
 import Focus from "@/pages/Focus";
 import Chat from "@/pages/Chat";
@@ -43,10 +45,12 @@ const App = () => (
         <AuthProvider>
           <FocusProvider>
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route element={<Protected />}>
-                <Route path="/" element={<Home />} />
+                <Route path="/app" element={<Home />} />
                 <Route path="/planner" element={<Planner />} />
+
                 <Route path="/focus" element={<Focus />} />
                 <Route path="/chat" element={<Chat />} />
                 

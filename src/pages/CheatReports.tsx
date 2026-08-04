@@ -61,7 +61,7 @@ export default function CheatReports() {
         <ShieldAlert className="h-10 w-10 mx-auto text-muted-foreground" />
         <h1 className="text-xl font-semibold">Admins only</h1>
         <p className="text-sm text-muted-foreground">This page is restricted.</p>
-        <Button onClick={() => navigate("/")} variant="outline">Back home</Button>
+        <Button onClick={() => navigate("/app")} variant="outline">Back home</Button>
       </div>
     );
   }

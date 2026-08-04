@@ -530,7 +530,7 @@ export default function Chat() {
                                 <UserAvatar url={f.avatar_url} name={f.name} />
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm truncate">{cleanText(f.name) || "Unnamed"}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{f.email}</div>
+                                  <div className="text-xs text-muted-foreground truncate">Friend</div>
                                 </div>
                                 <Button size="sm" onClick={async () => {
                                   const { error } = await supabase.from("group_members").insert({ group_id: active.id, user_id: f.user_id, role: "member" });

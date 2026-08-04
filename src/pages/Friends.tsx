@@ -169,7 +169,7 @@ export default function Friends() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold gradient-text flex items-center gap-2"><Users className="h-6 w-6" /> Friends</h1>
-        <p className="text-muted-foreground text-sm">Search by name or email, send requests, and invite friends to your study groups.</p>
+        <p className="text-muted-foreground text-sm">Search by their name, send requests, and invite friends to your study groups.</p>
       </div>
 
       {/* Profile picture */}
@@ -183,7 +183,7 @@ export default function Friends() {
         <h2 className="font-semibold mb-3 flex items-center gap-2"><Search className="h-4 w-4" /> Find people</h2>
         <div className="flex gap-2">
           <Input
-            placeholder="Search name or email..."
+            placeholder="Search by first or last name..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && search()}
@@ -200,7 +200,7 @@ export default function Friends() {
                   <UserAvatar url={p.avatar_url} name={p.name} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{cleanText(p.name) || "Unnamed"}</div>
-                    <div className="text-xs text-muted-foreground truncate">{p.email} · Lv {p.level}</div>
+                    <div className="text-xs text-muted-foreground truncate">Lv {p.level}</div>
                   </div>
                   {isFriend ? (
                     <span className="text-xs text-success">Friends ✓</span>
@@ -230,7 +230,7 @@ export default function Friends() {
                 <UserAvatar url={r.profile?.avatar_url} name={r.profile?.name} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{cleanText(r.profile?.name) || "Unknown"}</div>
-                  <div className="text-xs text-muted-foreground truncate">{r.profile?.email}</div>
+                  <div className="text-xs text-muted-foreground truncate">Lv {r.profile?.level ?? 1}</div>
                 </div>
                 <Button size="icon" variant="ghost" onClick={() => respond(r.id, true)} aria-label="Accept"><Check className="h-4 w-4 text-success" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => respond(r.id, false)} aria-label="Reject"><X className="h-4 w-4 text-destructive" /></Button>
@@ -250,7 +250,7 @@ export default function Friends() {
                 <UserAvatar url={r.profile?.avatar_url} name={r.profile?.name} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{cleanText(r.profile?.name) || "Unknown"}</div>
-                  <div className="text-xs text-muted-foreground truncate">{r.profile?.email}</div>
+                  <div className="text-xs text-muted-foreground truncate">Lv {r.profile?.level ?? 1}</div>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => cancel(r.id)}>Cancel</Button>
               </li>
@@ -271,7 +271,7 @@ export default function Friends() {
                 <UserAvatar url={f.profile.avatar_url} name={f.profile.name} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{cleanText(f.profile.name) || "Unnamed"}</div>
-                  <div className="text-xs text-muted-foreground truncate">Lv {f.profile.level} · {f.profile.email}</div>
+                  <div className="text-xs text-muted-foreground truncate">Lv {f.profile.level}</div>
                 </div>
                 {groups.length > 0 && (
                   <select
