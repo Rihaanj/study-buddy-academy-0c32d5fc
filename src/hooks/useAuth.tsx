@@ -51,6 +51,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       },
     });
     if (error) {
+      if (/weak|pwned/i.test(error.message)) {
+        return { error: "That password shows up in known data breaches. Pick a more unique one." };
+      }
       if (/already registered|already been registered|User already/i.test(error.message)) {
         return { error: "That name is already taken. Try adding a middle name or initial." };
       }
