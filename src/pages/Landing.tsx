@@ -24,16 +24,17 @@ const orbitChips = [
 ];
 
 const pillars = [
-  { icon: Brain, title: "AI tutor that teaches", body: "Full lessons with a worked example, key takeaways, common mistakes, a quiz and flashcards — never stolen homework answers." },
-  { icon: Timer, title: "Focus timer that pays", body: "Deep-work sessions earn the most XP in the app, plus a mystery pack every 5 minutes while a buff is live." },
-  { icon: ListChecks, title: "Planner + calendar", body: "Assignments ranked by smart priority, deadlines on a calendar, and nudges before anything is due." },
-  { icon: MessageCircle, title: "Chats, DMs & meets", body: "Group study chats, 1-on-1 DMs, images, stickers, meet links and live online status." },
-  { icon: Package, title: "Packs, buffs & badges", body: "Spin the pack wheel, activate XP buffs by rarity, unlock badges and evolve your avatar." },
-  { icon: Trophy, title: "Weekly leaderboard", body: "Ranked on how much you grew this week, not who started first. Top finishers win bonus packs every Monday." },
-  { icon: BookOpen, title: "Notebook & flashcards", body: "Save every lesson, build decks, and review with spaced repetition that knows what you keep forgetting." },
-  { icon: Zap, title: "Streaks & levels", body: "Daily streaks, XP levels and a mastery heatmap that shows exactly which topics need another pass." },
-  { icon: ShieldCheck, title: "Integrity built in", body: "Requests that cross the line get flagged and reviewed — this app makes you smarter, not sneakier." },
+  { icon: Brain, title: "AI tutor", body: "Lessons, quizzes, flashcards." },
+  { icon: Timer, title: "Focus timer", body: "Deep work that pays XP." },
+  { icon: ListChecks, title: "Planner", body: "Smart-priority assignments." },
+  { icon: Calendar, title: "Calendar", body: "Deadlines and nudges." },
+  { icon: MessageCircle, title: "Chats & DMs", body: "Study together, live." },
+  { icon: Package, title: "Packs & buffs", body: "Spin, boost, collect." },
+  { icon: Trophy, title: "Leaderboard", body: "Ranked on weekly growth." },
+  { icon: BookOpen, title: "Notebook", body: "Spaced-repetition review." },
+  { icon: ShieldCheck, title: "Integrity", body: "Teaches, never cheats." },
 ];
+
 
 function useCountUp(target: number, duration = 1400) {
   const [v, setV] = useState(0);
