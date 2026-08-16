@@ -7,7 +7,7 @@ import { SeoHead } from "@/components/SeoHead";
 import { Button } from "@/components/ui/button";
 import {
   ArrowUpRight, Brain, Timer, ListChecks, Users, Package, Trophy,
-  Sparkles, ShieldCheck, Calendar, MessageCircle, Zap, Star, BookOpen,
+  Sparkles, ShieldCheck, Calendar, MessageCircle, BookOpen,
 } from "lucide-react";
 
 const logoUrl = "/icons/icon-512.png";
@@ -67,7 +67,7 @@ const Stat = ({ value, label, suffix }: { value: number; label: string; suffix?:
 
 export default function Landing() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<Stats>({ visitors: 222, focus_hours: 37, ai_uses: 500, students: 0 });
+  const [stats, setStats] = useState<Stats>({ visitors: 222, focus_hours: 112, ai_uses: 383, students: 0 });
 
   useEffect(() => {
     (async () => {
