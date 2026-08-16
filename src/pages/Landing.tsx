@@ -190,49 +190,28 @@ export default function Landing() {
       </section>
 
       {/* Pillars */}
-      <section className="relative z-10 max-w-6xl mx-auto px-5 pb-20">
+      <section className="relative z-10 max-w-6xl mx-auto px-5 pb-24">
         <h2 className="text-3xl sm:text-4xl font-bold text-center tracking-tight">
-          Everything a student needs, <span className="gradient-text">in one place</span>
+          Everything you need, <span className="gradient-text">in one orbit</span>
         </h2>
-        <p className="text-center text-muted-foreground mt-3 max-w-2xl mx-auto text-sm sm:text-base">
-          Nine systems that work together — every minute you study feeds your XP, your streak and your rank.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-10">
           {pillars.map((p) => (
             <article
               key={p.title}
-              className="group glass rounded-2xl p-6 border border-white/10 hover:border-primary/40 hover:-translate-y-1.5 transition-all duration-300 relative overflow-hidden"
+              className="group relative overflow-hidden rounded-2xl p-5 sm:p-6 border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_10px_40px_-16px_hsl(var(--primary)/0.5)] transition-all duration-300 hover:-translate-y-2 hover:border-primary/50 hover:shadow-[0_24px_60px_-18px_hsl(var(--primary)/0.85)]"
             >
-              <div aria-hidden className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primary/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative h-11 w-11 rounded-xl grid place-items-center bg-gradient-primary/20 border border-white/10 shadow-glow">
-                <p.icon className="h-5 w-5 text-primary" />
+              <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-60" />
+              <div aria-hidden className="absolute -top-20 -right-16 h-44 w-44 rounded-full bg-primary/30 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative h-12 w-12 rounded-2xl grid place-items-center bg-gradient-primary shadow-glow ring-1 ring-white/25 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                <p.icon className="h-5 w-5 text-primary-foreground" />
               </div>
-              <h3 className="font-semibold mt-4 relative">{p.title}</h3>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed relative">{p.body}</p>
+              <h3 className="font-semibold mt-4 relative text-base sm:text-lg tracking-tight">{p.title}</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 relative">{p.body}</p>
             </article>
           ))}
         </div>
       </section>
 
-      {/* Integrity */}
-      <section className="relative z-10 max-w-4xl mx-auto px-5 pb-20">
-        <div className="glass-strong rounded-3xl p-10 text-center border border-white/10 relative overflow-hidden">
-          <div aria-hidden className="absolute inset-x-0 -top-24 h-48 bg-gradient-primary blur-[100px] opacity-25" />
-          <ShieldCheck className="relative h-9 w-9 mx-auto text-primary" />
-          <h2 className="relative text-2xl font-bold mt-4">Built for learning, not cheating</h2>
-          <p className="relative text-sm text-muted-foreground mt-3 max-w-2xl mx-auto leading-relaxed">
-            Study Bud AI teaches you how to solve it — it will never write your essay or hand you an answer key.
-            Every lesson ends in practice, and flagged requests are reviewed.
-          </p>
-          <div className="relative mt-7 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <Star className="h-3.5 w-3.5 text-warning fill-warning" />
-            Rated by real students using it every week
-          </div>
-          <Button asChild className="relative mt-6 rounded-full bg-gradient-primary text-primary-foreground shadow-glow h-12 px-8">
-            <Link to={user ? "/app" : "/login"}>Start studying free</Link>
-          </Button>
-        </div>
-      </section>
 
       <footer className="relative z-10 text-center text-xs text-muted-foreground pb-10">
         Made by <span className="gradient-text font-semibold">Rihaan Yeswant Jain</span>
