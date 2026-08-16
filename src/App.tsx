@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
@@ -7,27 +8,30 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
 import { AppLayout } from "@/components/AppLayout";
-import Login from "@/pages/Login";
 import Landing from "@/pages/Landing";
-import Home from "@/pages/Home";
+import Login from "@/pages/Login";
 
-import Planner from "@/pages/Planner";
-import Focus from "@/pages/Focus";
-import Chat from "@/pages/Chat";
-
-import AIHub from "@/pages/AIHub";
-import CalendarPage from "@/pages/Calendar";
-import Packs from "@/pages/Packs";
-import Buffs from "@/pages/Buffs";
-import Friends from "@/pages/Friends";
-import Leaderboard from "@/pages/Leaderboard";
-import Reviews from "@/pages/Reviews";
-import CheatReports from "@/pages/CheatReports";
-import Profile from "@/pages/Profile";
-import Help from "@/pages/Help";
-import NotFound from "@/pages/NotFound";
+const Home = lazy(() => import("@/pages/Home"));
+const Planner = lazy(() => import("@/pages/Planner"));
+const Focus = lazy(() => import("@/pages/Focus"));
+const Chat = lazy(() => import("@/pages/Chat"));
+const AIHub = lazy(() => import("@/pages/AIHub"));
+const CalendarPage = lazy(() => import("@/pages/Calendar"));
+const Packs = lazy(() => import("@/pages/Packs"));
+const Buffs = lazy(() => import("@/pages/Buffs"));
+const Friends = lazy(() => import("@/pages/Friends"));
+const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
+const Reviews = lazy(() => import("@/pages/Reviews"));
+const CheatReports = lazy(() => import("@/pages/CheatReports"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Help = lazy(() => import("@/pages/Help"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+const Fallback = () => (
+  <div className="min-h-[40vh] grid place-items-center text-muted-foreground text-sm">Loading...</div>
+);
 
 const Protected = () => {
   const { user, loading } = useAuth();
@@ -44,29 +48,29 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <FocusProvider>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route element={<Protected />}>
-                <Route path="/app" element={<Home />} />
-                <Route path="/planner" element={<Planner />} />
-
-                <Route path="/focus" element={<Focus />} />
-                <Route path="/chat" element={<Chat />} />
-                
-                <Route path="/ai" element={<AIHub />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/packs" element={<Packs />} />
-                <Route path="/buffs" element={<Buffs />} />
-                <Route path="/friends" element={<Friends />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/reviews" element={<Reviews />} />
-                <Route path="/cheats" element={<CheatReports />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/help" element={<Help />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<Fallback />}>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Login />} />
+                <Route element={<Protected />}>
+                  <Route path="/app" element={<Home />} />
+                  <Route path="/planner" element={<Planner />} />
+                  <Route path="/focus" element={<Focus />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/ai" element={<AIHub />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="/packs" element={<Packs />} />
+                  <Route path="/buffs" element={<Buffs />} />
+                  <Route path="/friends" element={<Friends />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/reviews" element={<Reviews />} />
+                  <Route path="/cheats" element={<CheatReports />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/help" element={<Help />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </FocusProvider>
         </AuthProvider>
       </BrowserRouter>
