@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Study Bud AI — AI Tutor, Planner & Focus Timer</title>
+    <title>Study Bud AI - AI Tutor, Planner &amp; Focus Timer</title>
     <meta name="description" content="Study Bud AI: AI tutor, smart planner, focus timer, streaks, and rewards. Learn faster, beat procrastination, and level up your grades.">
 
     <meta name="keywords" content="study bud ai, study buddy ai, ai tutor, study app, ai homework helper, focus timer, pomodoro app, gamified study, student planner, ai study assistant" />
@@ -19,8 +19,9 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png?v=4">
+    <link rel="shortcut icon" type="image/png" href="/favicon.png?v=4">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png?v=4" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Study Bud AI" />
@@ -67,15 +68,16 @@
       }
     }
     </script>
+    <style>@keyframes sb-pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}</style>
   </head>
   <body>
     <a href="#main" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" onfocus="this.style.cssText='position:fixed;left:1rem;top:1rem;width:auto;height:auto;padding:.5rem 1rem;background:#0B0F1A;color:#fff;z-index:9999;border-radius:.5rem'">Skip to main content</a>
     <div id="root">
-      <main id="main" style="min-height:100dvh;display:grid;place-items:center;background:#0B0F1A;color:#e6e8ee;font-family:Inter,system-ui,sans-serif;padding:2rem;text-align:center">
+      <main id="main" style="min-height:100dvh;display:grid;place-items:center;background:radial-gradient(1200px 600px at 50% 30%,#161b33 0%,#0B0F1A 70%);color:#e6e8ee;font-family:Inter,system-ui,sans-serif;padding:2rem;text-align:center">
         <div>
-          <img src="/icons/icon-192.png" alt="Study Bud AI" width="96" height="96" style="border-radius:24px;margin:0 auto 1rem;display:block" fetchpriority="high" />
-          <h1 style="font-size:1.75rem;margin:0 0 .5rem;font-weight:700">Study Bud AI</h1>
-          <p style="margin:0;color:#9aa3b2">AI tutor, planner, and focus timer — loading your cosmos…</p>
+          <img src="/icons/icon-192.png" alt="Study Bud AI" width="88" height="88" style="margin:0 auto 1.1rem;display:block;filter:drop-shadow(0 0 42px rgba(150,110,255,.65));animation:sb-pulse 2.2s ease-in-out infinite" fetchpriority="high" />
+          <h1 style="font-size:1.6rem;margin:0 0 .4rem;font-weight:700;letter-spacing:-.02em">Study Bud AI</h1>
+          <p style="margin:0;color:#9aa3b2;font-size:.9rem">Loading your cosmos...</p>
         </div>
       </main>
     </div>

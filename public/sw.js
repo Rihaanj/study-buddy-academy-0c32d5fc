@@ -1,6 +1,6 @@
 // Minimal offline shell service worker for Study Bud AI.
 // Network-first for navigation, cache-first for static assets.
-const CACHE = "studybud-v1";
+const CACHE = "studybud-v3";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -39,7 +39,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
         }
         return res;
-      }).catch(() => cached as Response)
+      }).catch(() => cached)
     )
   );
 });

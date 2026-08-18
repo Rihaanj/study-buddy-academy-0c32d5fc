@@ -7,10 +7,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
-import { AppLayout } from "@/components/AppLayout";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 
+const AppLayout = lazy(() => import("@/components/AppLayout").then((m) => ({ default: m.AppLayout })));
 const Home = lazy(() => import("@/pages/Home"));
 const Planner = lazy(() => import("@/pages/Planner"));
 const Focus = lazy(() => import("@/pages/Focus"));
