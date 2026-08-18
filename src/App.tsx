@@ -29,13 +29,9 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
 
-const Fallback = () => (
-  <div className="min-h-[40vh] grid place-items-center text-muted-foreground text-sm">Loading...</div>
-);
-
 const Protected = () => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading...</div>;
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   return <AppLayout />;
 };
@@ -48,7 +44,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <FocusProvider>
-            <Suspense fallback={<Fallback />}>
+            <Suspense fallback={null}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
