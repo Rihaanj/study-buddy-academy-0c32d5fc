@@ -9,8 +9,8 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
+import { AppLayout } from "@/components/AppLayout";
 
-const AppLayout = lazy(() => import("@/components/AppLayout").then((m) => ({ default: m.AppLayout })));
 const Home = lazy(() => import("@/pages/Home"));
 const Planner = lazy(() => import("@/pages/Planner"));
 const Focus = lazy(() => import("@/pages/Focus"));
