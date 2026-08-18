@@ -68,19 +68,10 @@
       }
     }
     </script>
-    <style>@keyframes sb-pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.06);opacity:1}}</style>
   </head>
   <body>
     <a href="#main" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" onfocus="this.style.cssText='position:fixed;left:1rem;top:1rem;width:auto;height:auto;padding:.5rem 1rem;background:#0B0F1A;color:#fff;z-index:9999;border-radius:.5rem'">Skip to main content</a>
-    <div id="root">
-      <main id="main" style="min-height:100dvh;display:grid;place-items:center;background:radial-gradient(1200px 600px at 50% 30%,#161b33 0%,#0B0F1A 70%);color:#e6e8ee;font-family:Inter,system-ui,sans-serif;padding:2rem;text-align:center">
-        <div>
-          <img src="/icons/icon-192.png" alt="Study Bud AI" width="88" height="88" style="margin:0 auto 1.1rem;display:block;filter:drop-shadow(0 0 42px rgba(150,110,255,.65));animation:sb-pulse 2.2s ease-in-out infinite" fetchpriority="high" />
-          <h1 style="font-size:1.6rem;margin:0 0 .4rem;font-weight:700;letter-spacing:-.02em">Study Bud AI</h1>
-          <p style="margin:0;color:#9aa3b2;font-size:.9rem">Loading your cosmos...</p>
-        </div>
-      </main>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
