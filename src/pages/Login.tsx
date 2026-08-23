@@ -118,13 +118,13 @@ export default function Login() {
               <div className="absolute inset-0 rounded-full bg-gradient-primary blur-2xl opacity-40" />
               <img src={logoUrl} alt="Study Bud AI orbit logo" className="relative h-full w-full object-contain drop-shadow-[0_0_30px_hsl(var(--primary)/0.7)]" width={96} height={96} />
             </Link>
-            <h1 className="text-4xl sm:text-5xl font-bold mt-6 gradient-text tracking-tight">Study Bud AI</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold mt-6 shimmer-text tracking-tight">Study Bud AI</h1>
             <p className="text-muted-foreground mt-3 text-base">
               Your cosmic Student OS — AI tutor, planner,<br className="hidden sm:block" /> focus, and rewards.
             </p>
           </div>
 
-          <div className="glass-strong p-7 sm:p-9 animate-fade-in" style={{ animationDelay: "150ms" }}>
+          <div className="glass-strong aurora-ring p-7 sm:p-9 animate-fade-in" style={{ animationDelay: "150ms" }}>
             <div className="flex justify-center gap-2 mb-6">
               {features.map((f) => (
                 <div key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-muted-foreground">
