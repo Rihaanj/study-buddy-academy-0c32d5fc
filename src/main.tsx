@@ -9,17 +9,14 @@ createRoot(document.getElementById("root")!).render(
   </HelmetProvider>
 );
 
-// Register service worker only on production-like hosts (not in Lovable preview iframe).
-const isInIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
-const host = window.location.hostname;
-const isPreview = host.includes("lovableproject.com") || host.includes("id-preview--") || host === "localhost";
-
+// No service worker: always serve fresh app code. Remove any previously
+// registered worker + caches so nobody is stuck on a stale blank shell.
 if ("serviceWorker" in navigator) {
-  if (!isInIframe && !isPreview) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    });
-  } else {
-    navigator.serviceWorker.getRegistrations?.().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
-  }
+  navigator.serviceWorker
+    .getRegistrations?.()
+    .then((rs) => rs.forEach((r) => r.unregister()))
+    .catch(() => {});
+}
+if (typeof caches !== "undefined") {
+  caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
 }

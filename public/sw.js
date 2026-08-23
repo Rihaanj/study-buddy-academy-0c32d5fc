@@ -1,45 +1,17 @@
-// Minimal offline shell service worker for Study Bud AI.
-// Network-first for navigation, cache-first for static assets.
-const CACHE = "studybud-v3";
-const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest"];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(APP_SHELL)).catch(() => {}));
-  self.skipWaiting();
-});
+// Kill-switch service worker: removes any previously cached app shell that
+// could serve a stale/blank page, then unregisters itself.
+self.addEventListener("install", () => self.skipWaiting());
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") return;
-  const url = new URL(req.url);
-
-  // Never cache API/auth/realtime calls.
-  if (url.hostname.includes("supabase.co") || url.pathname.startsWith("/~oauth")) return;
-
-  if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req).catch(() => caches.match("/index.html").then((r) => r ?? Response.error()))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(req).then((cached) =>
-      cached ||
-      fetch(req).then((res) => {
-        const copy = res.clone();
-        if (res.ok && url.origin === self.location.origin) {
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-        }
-        return res;
-      }).catch(() => cached)
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: "window" });
+      clients.forEach((c) => c.navigate(c.url));
+    })().catch(() => {})
   );
 });
+
+// Never intercept requests — always go to the network.
