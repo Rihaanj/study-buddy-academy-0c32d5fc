@@ -23,12 +23,26 @@ const features = [
 export default function Login() {
   const { signInWithName, signUpWithName, user, loading } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signup");
-  const [first, setFirst] = useState("");
-  const [last, setLast] = useState("");
+  const [accounts, setAccounts] = useState<SavedAccount[]>(() => getSavedAccounts());
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(() => (getSavedAccounts().length ? "signin" : "signup"));
+  const [first, setFirst] = useState(() => (getSavedAccounts().length === 1 ? getSavedAccounts()[0].first : ""));
+  const [last, setLast] = useState(() => (getSavedAccounts().length === 1 ? getSavedAccounts()[0].last : ""));
   const [password, setPassword] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const pickAccount = (a: SavedAccount) => {
+    setMode("signin");
+    setFirst(a.first);
+    setLast(a.last);
+    setPassword("");
+    document.getElementById("password")?.focus();
+  };
+
+  const dropAccount = (a: SavedAccount) => {
+    forgetAccount(a.first, a.last);
+    setAccounts(getSavedAccounts());
+  };
 
   useEffect(() => {
     if (!loading && user) navigate("/app", { replace: true });
