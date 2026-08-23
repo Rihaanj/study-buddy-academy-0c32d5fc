@@ -10,6 +10,7 @@ import { SeoHead } from "@/components/SeoHead";
 import { loginKeyFrom, validateSignup } from "@/lib/authName";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getSavedAccounts, forgetAccount, type SavedAccount } from "@/lib/savedAccounts";
 
 const logoUrl = "/icons/icon-512.png";
 
