@@ -350,3 +350,62 @@ a[aria-label*="Lovable"] {
 .ai-prose table { width: 100%; border-collapse: collapse; }
 .ai-prose th, .ai-prose td { border: 1px solid hsl(var(--border)); padding: 0.5rem 0.75rem; text-align: left; }
 .ai-prose th { background: hsl(var(--muted) / 0.5); color: hsl(var(--primary-glow)); }
+
+/* ✨ Extra polish: lift + aurora rings + shimmering headings */
+.glass:hover,
+.glass-strong:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card), 0 0 40px hsl(var(--primary) / 0.18), inset 0 1px 0 hsl(0 0% 100% / 0.10);
+}
+.glass-strong { transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease; }
+
+.aurora-ring {
+  position: relative;
+  isolation: isolate;
+}
+.aurora-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from 0deg,
+    hsl(var(--primary) / 0.9),
+    hsl(var(--secondary) / 0.9),
+    hsl(var(--accent) / 0.9),
+    hsl(var(--primary) / 0.9)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  animation: aurora-spin 8s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes aurora-spin { to { transform: rotate(1turn); } }
+
+.shimmer-text {
+  background: linear-gradient(
+    100deg,
+    hsl(var(--foreground)) 20%,
+    hsl(var(--primary)) 40%,
+    hsl(var(--secondary)) 55%,
+    hsl(var(--foreground)) 75%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-slide 6s ease-in-out infinite;
+}
+@keyframes shimmer-slide {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-ring::before, .shimmer-text, .float, .glow-pulse { animation: none; }
+  .glass:hover, .glass-strong:hover { transform: none; }
+}

@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Trash2 } from "lucide-react";
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, addDays, startOfWeek, endOfWeek } from "date-fns";
 import { toast } from "sonner";
-import { WeatherWidget } from "@/components/WeatherWidget";
 
 type EventRow = {
   id: string;
@@ -132,7 +131,6 @@ export default function Calendar() {
 
   return (
     <div className="space-y-6">
-      <WeatherWidget />
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold">Calendar</h1>

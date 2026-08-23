@@ -10,6 +10,7 @@ import { SeoHead } from "@/components/SeoHead";
 import { loginKeyFrom, validateSignup } from "@/lib/authName";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getSavedAccounts, forgetAccount, type SavedAccount } from "@/lib/savedAccounts";
 
 const logoUrl = "/icons/icon-512.png";
 
@@ -22,12 +23,26 @@ const features = [
 export default function Login() {
   const { signInWithName, signUpWithName, user, loading } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signup");
-  const [first, setFirst] = useState("");
-  const [last, setLast] = useState("");
+  const [accounts, setAccounts] = useState<SavedAccount[]>(() => getSavedAccounts());
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(() => (getSavedAccounts().length ? "signin" : "signup"));
+  const [first, setFirst] = useState(() => (getSavedAccounts().length === 1 ? getSavedAccounts()[0].first : ""));
+  const [last, setLast] = useState(() => (getSavedAccounts().length === 1 ? getSavedAccounts()[0].last : ""));
   const [password, setPassword] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const pickAccount = (a: SavedAccount) => {
+    setMode("signin");
+    setFirst(a.first);
+    setLast(a.last);
+    setPassword("");
+    document.getElementById("password")?.focus();
+  };
+
+  const dropAccount = (a: SavedAccount) => {
+    forgetAccount(a.first, a.last);
+    setAccounts(getSavedAccounts());
+  };
 
   useEffect(() => {
     if (!loading && user) navigate("/app", { replace: true });
@@ -103,13 +118,13 @@ export default function Login() {
               <div className="absolute inset-0 rounded-full bg-gradient-primary blur-2xl opacity-40" />
               <img src={logoUrl} alt="Study Bud AI orbit logo" className="relative h-full w-full object-contain drop-shadow-[0_0_30px_hsl(var(--primary)/0.7)]" width={96} height={96} />
             </Link>
-            <h1 className="text-4xl sm:text-5xl font-bold mt-6 gradient-text tracking-tight">Study Bud AI</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold mt-6 shimmer-text tracking-tight">Study Bud AI</h1>
             <p className="text-muted-foreground mt-3 text-base">
               Your cosmic Student OS — AI tutor, planner,<br className="hidden sm:block" /> focus, and rewards.
             </p>
           </div>
 
-          <div className="glass-strong p-7 sm:p-9 animate-fade-in" style={{ animationDelay: "150ms" }}>
+          <div className="glass-strong aurora-ring p-7 sm:p-9 animate-fade-in" style={{ animationDelay: "150ms" }}>
             <div className="flex justify-center gap-2 mb-6">
               {features.map((f) => (
                 <div key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-muted-foreground">
@@ -118,6 +133,45 @@ export default function Login() {
                 </div>
               ))}
             </div>
+
+            {accounts.length > 0 && mode !== "signup" && (
+              <div className="mb-6">
+                <p className="text-xs text-muted-foreground mb-2">
+                  {accounts.length > 1 ? "Pick an account" : "Continue as"}
+                </p>
+                <div className="space-y-2">
+                  {accounts.map((a) => {
+                    const active = a.first.toLowerCase() === first.trim().toLowerCase() && a.last.toLowerCase() === last.trim().toLowerCase();
+                    return (
+                      <div
+                        key={`${a.first}-${a.last}`}
+                        className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all ${
+                          active ? "border-primary/60 bg-primary/10 shadow-glow" : "border-white/10 bg-white/[0.04] hover:border-primary/40"
+                        }`}
+                      >
+                        <button type="button" onClick={() => pickAccount(a)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                          <span className="h-9 w-9 shrink-0 rounded-full bg-gradient-primary grid place-items-center text-primary-foreground text-xs font-bold">
+                            {a.first[0]?.toUpperCase()}{a.last[0]?.toUpperCase()}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-medium truncate">{a.first} {a.last}</span>
+                            <span className="block text-[11px] text-muted-foreground">Tap to continue</span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => dropAccount(a)}
+                          aria-label={`Forget ${a.first} ${a.last}`}
+                          className="text-[11px] text-muted-foreground hover:text-destructive px-1"
+                        >
+                          Forget
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-white/5 border border-white/10 mb-6">
               {(["signup", "signin"] as const).map((m) => (
