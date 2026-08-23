@@ -105,7 +105,7 @@ export const AppLayout = () => {
       <Starfield />
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-strong border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
-        <NavLink to="/app" className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <NavLink to="/" aria-label="Go to the Study Bud AI home page" className="flex items-center gap-2 sm:gap-3 min-w-0 group">
           <div className="relative h-9 w-9 sm:h-10 sm:w-10 shrink-0">
             <div aria-hidden className="absolute inset-0 rounded-full bg-gradient-primary blur-lg opacity-50" />
             <img
