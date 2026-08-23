@@ -175,7 +175,7 @@ export default function Landing() {
             className="absolute inset-[26%] h-[48%] w-[48%] object-contain float drop-shadow-[0_0_70px_hsl(var(--primary)/0.7)]"
             width={420}
             height={420}
-            fetchPriority="high"
+            {...{ fetchpriority: "high" }}
           />
           {orbitChips.map((c) => (
             <div
