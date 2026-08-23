@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { authEmailFor, loginKeyFrom } from "@/lib/authName";
+import { rememberAccount } from "@/lib/savedAccounts";
 
 type Result = { error: string | null };
 
@@ -67,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       if (e2) return { error: e2.message };
     }
+    rememberAccount(first, last);
     return { error: null };
   };
 
@@ -82,6 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return { error: error.message };
     }
+    rememberAccount(first, last);
     return { error: null };
   };
 
