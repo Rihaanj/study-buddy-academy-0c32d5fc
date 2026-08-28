@@ -9,9 +9,10 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
+import Home from "@/pages/Home";
 import { AppLayout } from "@/components/AppLayout";
+import { Starfield } from "@/components/Starfield";
 
-const Home = lazy(() => import("@/pages/Home"));
 const Planner = lazy(() => import("@/pages/Planner"));
 const Focus = lazy(() => import("@/pages/Focus"));
 const Chat = lazy(() => import("@/pages/Chat"));
@@ -29,9 +30,26 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+const RouteFallback = () => (
+  <div className="min-h-[55vh] w-full animate-pulse" aria-label="Opening page">
+    <div className="h-8 w-48 rounded-md bg-muted/60" />
+    <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="h-28 rounded-lg bg-muted/40" />
+      <div className="h-28 rounded-lg bg-muted/40" />
+      <div className="h-28 rounded-lg bg-muted/40" />
+    </div>
+  </div>
+);
+
+const StartupFallback = () => (
+  <div className="min-h-screen">
+    <Starfield />
+  </div>
+);
+
 const Protected = () => {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <StartupFallback />;
   if (!user) return <Navigate to="/login" replace />;
   return <AppLayout />;
 };
@@ -41,10 +59,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner theme="dark" />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <FocusProvider>
-            <Suspense fallback={null}>
+            <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />

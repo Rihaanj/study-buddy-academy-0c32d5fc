@@ -48,18 +48,7 @@ export default function Login() {
     if (!loading && user) navigate("/app", { replace: true });
   }, [loading, user, navigate]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen grid place-items-center text-muted-foreground relative">
-        <Starfield />
-        <div className="flex items-center gap-3">
-          <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-          <span>Loading the cosmos...</span>
-        </div>
-      </div>
-    );
-  }
-  if (user) return <Navigate to="/app" replace />;
+  if (!loading && user) return <Navigate to="/app" replace />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
