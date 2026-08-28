@@ -9,9 +9,10 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
+import Home from "@/pages/Home";
 import { AppLayout } from "@/components/AppLayout";
+import { Starfield } from "@/components/Starfield";
 
-const Home = lazy(() => import("@/pages/Home"));
 const Planner = lazy(() => import("@/pages/Planner"));
 const Focus = lazy(() => import("@/pages/Focus"));
 const Chat = lazy(() => import("@/pages/Chat"));
@@ -29,11 +30,32 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+const RouteFallback = () => (
+  <div className="min-h-[55vh] w-full animate-pulse" aria-label="Opening page">
+    <div className="h-8 w-48 rounded-md bg-muted/60" />
+    <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="h-28 rounded-lg bg-muted/40" />
+      <div className="h-28 rounded-lg bg-muted/40" />
+      <div className="h-28 rounded-lg bg-muted/40" />
+    </div>
+  </div>
+);
+
+const StartupFallback = () => (
+  <div className="min-h-screen">
+    <Starfield />
+  </div>
+);
+
 const Protected = () => {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <StartupFallback />;
   if (!user) return <Navigate to="/login" replace />;
-  return <AppLayout />;
+  return (
+    <FocusProvider>
+      <AppLayout />
+    </FocusProvider>
+  );
 };
 
 const App = () => (
@@ -41,33 +63,31 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner theme="dark" />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <FocusProvider>
-            <Suspense fallback={null}>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
-                <Route element={<Protected />}>
-                  <Route path="/app" element={<Home />} />
-                  <Route path="/planner" element={<Planner />} />
-                  <Route path="/focus" element={<Focus />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/ai" element={<AIHub />} />
-                  <Route path="/calendar" element={<CalendarPage />} />
-                  <Route path="/packs" element={<Packs />} />
-                  <Route path="/buffs" element={<Buffs />} />
-                  <Route path="/friends" element={<Friends />} />
-                  <Route path="/leaderboard" element={<Leaderboard />} />
-                  <Route path="/reviews" element={<Reviews />} />
-                  <Route path="/cheats" element={<CheatReports />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/help" element={<Help />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </FocusProvider>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route element={<Protected />}>
+                <Route path="/app" element={<Home />} />
+                <Route path="/planner" element={<Planner />} />
+                <Route path="/focus" element={<Focus />} />
+                <Route path="/chat" element={<Chat />} />
+                <Route path="/ai" element={<AIHub />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/packs" element={<Packs />} />
+                <Route path="/buffs" element={<Buffs />} />
+                <Route path="/friends" element={<Friends />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/reviews" element={<Reviews />} />
+                <Route path="/cheats" element={<CheatReports />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/help" element={<Help />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

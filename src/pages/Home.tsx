@@ -22,20 +22,25 @@ export default function Home() {
 
   useEffect(() => {
     if (!user) return;
+    let active = true;
     (async () => {
       const { data: tasks } = await supabase
         .from("tasks").select("*").eq("user_id", user.id).eq("completed", false)
         .order("priority_score", { ascending: false }).limit(8);
+      if (!active) return;
       setTopTask(tasks?.[0] ?? null);
       setTodayTasks(tasks ?? []);
       const { data: ev } = await supabase
         .from("events").select("*").eq("user_id", user.id).gte("date", new Date().toISOString())
         .order("date", { ascending: true }).limit(1).maybeSingle();
+      if (!active) return;
       setNextEvent(ev);
       const { data: ab } = await supabase.from("active_buffs").select("*").eq("user_id", user.id).limit(3);
+      if (!active) return;
       setBuffs(ab ?? []);
     })();
-  }, [user]);
+    return () => { active = false; };
+  }, [user?.id]);
 
   return (
     <div className="space-y-6">
