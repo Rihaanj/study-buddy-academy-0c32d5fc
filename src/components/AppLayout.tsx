@@ -180,7 +180,7 @@ export const AppLayout = () => {
         </nav>
 
         <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 pb-32 md:pb-8 max-w-6xl mx-auto w-full min-w-0">
-          <div key={location.pathname} className="route-enter">
+          <div className="route-enter">
             <Outlet />
           </div>
         </main>

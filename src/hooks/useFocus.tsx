@@ -93,9 +93,10 @@ export const FocusProvider = ({ children }: { children: ReactNode }) => {
       const left = Math.max(0, Math.round((end - Date.now()) / 1000));
       setRemaining(left);
       if (left <= 0) {
-        window.clearInterval(intervalRef.current!);
+        const interval = intervalRef.current;
+        if (interval !== null) window.clearInterval(interval);
         intervalRef.current = null;
-        stop(true);
+        void stop(true);
       }
     }, 250);
   }, [stop]);

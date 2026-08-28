@@ -51,7 +51,11 @@ const Protected = () => {
   const { user, loading } = useAuth();
   if (loading) return <StartupFallback />;
   if (!user) return <Navigate to="/login" replace />;
-  return <AppLayout />;
+  return (
+    <FocusProvider>
+      <AppLayout />
+    </FocusProvider>
+  );
 };
 
 const App = () => (
@@ -61,31 +65,29 @@ const App = () => (
       <Sonner theme="dark" />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <FocusProvider>
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<Login />} />
-                <Route element={<Protected />}>
-                  <Route path="/app" element={<Home />} />
-                  <Route path="/planner" element={<Planner />} />
-                  <Route path="/focus" element={<Focus />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/ai" element={<AIHub />} />
-                  <Route path="/calendar" element={<CalendarPage />} />
-                  <Route path="/packs" element={<Packs />} />
-                  <Route path="/buffs" element={<Buffs />} />
-                  <Route path="/friends" element={<Friends />} />
-                  <Route path="/leaderboard" element={<Leaderboard />} />
-                  <Route path="/reviews" element={<Reviews />} />
-                  <Route path="/cheats" element={<CheatReports />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/help" element={<Help />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </FocusProvider>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route element={<Protected />}>
+                <Route path="/app" element={<Home />} />
+                <Route path="/planner" element={<Planner />} />
+                <Route path="/focus" element={<Focus />} />
+                <Route path="/chat" element={<Chat />} />
+                <Route path="/ai" element={<AIHub />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/packs" element={<Packs />} />
+                <Route path="/buffs" element={<Buffs />} />
+                <Route path="/friends" element={<Friends />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/reviews" element={<Reviews />} />
+                <Route path="/cheats" element={<CheatReports />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/help" element={<Help />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
