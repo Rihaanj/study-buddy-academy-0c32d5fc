@@ -1,17 +1,24 @@
-// Kill-switch service worker: removes any previously cached app shell that
-// could serve a stale/blank page, then unregisters itself.
+// One-release kill switch for a previously cached app shell.
+function isWorkboxCacheForThisRegistration(name) {
+  const hasWorkboxBucket = /(^|-)precache-v\d+-|(^|-)runtime-|(^|-)googleAnalytics-/.test(name);
+  return hasWorkboxBucket && name.endsWith(self.registration.scope);
+}
+
 self.addEventListener("install", () => self.skipWaiting());
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("activate", (event) =>
   event.waitUntil(
     (async () => {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
-      await self.registration.unregister();
-      const clients = await self.clients.matchAll({ type: "window" });
-      clients.forEach((c) => c.navigate(c.url));
-    })().catch(() => {})
-  );
-});
-
-// Never intercept requests — always go to the network.
+      try {
+        const cacheNames = await caches.keys();
+        const appCacheNames = cacheNames.filter(isWorkboxCacheForThisRegistration);
+        await Promise.allSettled(appCacheNames.map((name) => caches.delete(name)));
+        await self.clients.claim();
+        const windowClients = await self.clients.matchAll({ type: "window" });
+        await Promise.allSettled(windowClients.map((client) => client.navigate(client.url)));
+      } finally {
+        await self.registration.unregister();
+      }
+    })(),
+  ),
+);
