@@ -1,5 +1,6 @@
 # Reliability release
-- [ ] Diagnose blank screen on every hosted entry point
-- [ ] Remove obsolete startup/cache code and unused files that can interfere
+- [x] Diagnose blank screen on every hosted entry point
+- [x] Make protected startup visible and retry stale worker cleanup on every visit
+- [x] Remove obsolete one-time cleanup and unused route preloading code
 - [ ] Verify production build, tests, fresh loads, cached loads, and deep links
 - [ ] Check security scan and publish the verified release

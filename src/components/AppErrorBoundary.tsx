@@ -17,8 +17,30 @@ export class AppErrorBoundary extends Component<Props, State> {
     console.error("Study Bud AI recovered from a page error", error, info);
   }
 
-  private reload = () => {
-    window.location.reload();
+  private reload = async () => {
+    if ("serviceWorker" in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.allSettled(
+          registrations
+            .filter((registration) => {
+              const workerUrl = registration.active?.scriptURL
+                ?? registration.waiting?.scriptURL
+                ?? registration.installing?.scriptURL
+                ?? "";
+              if (!workerUrl) return false;
+              const path = new URL(workerUrl).pathname;
+              return path === "/sw.js" || path === "/service-worker.js";
+            })
+            .map((registration) => registration.unregister()),
+        );
+      } catch {
+        // Reload still works if the browser blocks service-worker access.
+      }
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("recovery", Date.now().toString());
+    window.location.replace(url.toString());
   };
 
   private goHome = () => {

@@ -16,28 +16,28 @@ if (root) {
   );
 }
 
-// Retire only the app-shell worker. Messaging workers, if added later, remain intact.
-// Storage may be unavailable in strict/privacy browsers, so cleanup must never block React.
+// Retire stale app-shell workers on every visit. This is intentionally non-blocking:
+// React renders immediately while browsers left on an older cached release recover.
 const retireLegacyAppWorker = async () => {
   if (!("serviceWorker" in navigator)) return;
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.allSettled(
       registrations
-        .filter((registration) => new URL(registration.scope).origin === window.location.origin)
+        .filter((registration) => {
+          const workerUrl = registration.active?.scriptURL
+            ?? registration.waiting?.scriptURL
+            ?? registration.installing?.scriptURL
+            ?? "";
+          if (!workerUrl) return false;
+          const path = new URL(workerUrl).pathname;
+          return path === "/sw.js" || path === "/service-worker.js";
+        })
         .map((registration) => registration.unregister()),
     );
   } catch {
-    // The app remains network-first even when the browser blocks worker access.
+    // Browser privacy settings can block worker access; the app still renders normally.
   }
 };
 
-try {
-  const cleanupVersion = "5";
-  if (window.localStorage.getItem("sb_cache_cleanup") !== cleanupVersion) {
-    window.localStorage.setItem("sb_cache_cleanup", cleanupVersion);
-    void retireLegacyAppWorker();
-  }
-} catch {
-  void retireLegacyAppWorker();
-}
+void retireLegacyAppWorker();

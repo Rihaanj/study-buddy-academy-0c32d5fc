@@ -25,7 +25,3 @@ export const preloadRoute = (path: string) => {
   requestedRoutes.add(path);
   void loader().catch(() => requestedRoutes.delete(path));
 };
-
-export const preloadAppRoutes = () => {
-  Object.keys(routeLoaders).forEach(preloadRoute);
-};
