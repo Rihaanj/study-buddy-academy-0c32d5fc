@@ -42,8 +42,26 @@ const RouteFallback = () => (
 );
 
 const StartupFallback = () => (
-  <div className="min-h-screen">
+  <div className="relative min-h-screen overflow-hidden">
     <Starfield />
+    <header className="relative z-10 flex items-center gap-3 border-b border-border/60 px-4 py-3 glass-strong">
+      <img
+        src="/icons/icon-192.png"
+        alt="Study Bud AI"
+        className="h-10 w-10 object-contain"
+        width={40}
+        height={40}
+      />
+      <span className="text-base font-semibold shimmer-text">Study Bud AI</span>
+    </header>
+    <main className="relative z-10 mx-auto w-full max-w-6xl px-4 py-8 sm:px-6" aria-label="Opening your account">
+      <div className="h-8 w-56 animate-pulse rounded-md bg-muted/60" />
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="h-28 animate-pulse rounded-lg bg-muted/40" />
+        <div className="h-28 animate-pulse rounded-lg bg-muted/40" />
+        <div className="h-28 animate-pulse rounded-lg bg-muted/40" />
+      </div>
+    </main>
   </div>
 );
 

@@ -1,7 +1,6 @@
 type RouteLoader = () => Promise<unknown>;
 
 const routeLoaders: Record<string, RouteLoader> = {
-  "/app": () => import("@/pages/Home"),
   "/planner": () => import("@/pages/Planner"),
   "/focus": () => import("@/pages/Focus"),
   "/chat": () => import("@/pages/Chat"),
@@ -24,8 +23,4 @@ export const preloadRoute = (path: string) => {
   if (!loader || requestedRoutes.has(path)) return;
   requestedRoutes.add(path);
   void loader().catch(() => requestedRoutes.delete(path));
-};
-
-export const preloadAppRoutes = () => {
-  Object.keys(routeLoaders).forEach(preloadRoute);
 };
