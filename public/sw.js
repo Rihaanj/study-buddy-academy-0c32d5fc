@@ -14,8 +14,6 @@ self.addEventListener("activate", (event) =>
         const appCacheNames = cacheNames.filter(isWorkboxCacheForThisRegistration);
         await Promise.allSettled(appCacheNames.map((name) => caches.delete(name)));
         await self.clients.claim();
-        const windowClients = await self.clients.matchAll({ type: "window" });
-        await Promise.allSettled(windowClients.map((client) => client.navigate(client.url)));
       } finally {
         await self.registration.unregister();
       }
