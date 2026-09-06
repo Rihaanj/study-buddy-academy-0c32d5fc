@@ -17,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { markTabVisited } from "@/lib/badges";
 import { runDueDateNotifier } from "@/lib/notifications";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { preloadRoute } from "@/lib/routePreload";
 
 const TAB_HINTS: Record<string, string> = {
   "/app": "Your dashboard — quick stats, today's tasks, and shortcuts.",
@@ -155,10 +154,6 @@ export const AppLayout = () => {
                     to={t.to}
                     end={t.end}
                     data-tour-tab={t.to}
-                    onMouseEnter={() => preloadRoute(t.to)}
-                    onFocus={() => preloadRoute(t.to)}
-                    onTouchStart={() => preloadRoute(t.to)}
-                    onPointerDown={() => preloadRoute(t.to)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group relative text-white ${
                         isActive
@@ -180,9 +175,7 @@ export const AppLayout = () => {
         </nav>
 
         <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 pb-32 md:pb-8 max-w-6xl mx-auto w-full min-w-0">
-          <div className="route-enter">
-            <Outlet />
-          </div>
+          <Outlet />
         </main>
       </div>
 
@@ -207,10 +200,6 @@ export const AppLayout = () => {
                 key={t.to}
                 to={t.to}
                 end={t.end}
-                onTouchStart={() => preloadRoute(t.to)}
-                onMouseEnter={() => preloadRoute(t.to)}
-                onFocus={() => preloadRoute(t.to)}
-                onPointerDown={() => preloadRoute(t.to)}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] text-white transition-all duration-200 ${
                     isActive ? "bg-primary/25 font-semibold ring-1 ring-primary/40" : "text-white/85"
