@@ -93,7 +93,7 @@ export const AppLayout = () => {
       <Starfield />
       {/* Top bar */}
       <header className="sticky top-0 z-30 glass-strong border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
-        <NavLink to="/" aria-label="Go to the Study Bud AI home page" className="flex items-center gap-2 sm:gap-3 min-w-0 group">
+        <NavLink to="/app" className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="relative h-9 w-9 sm:h-10 sm:w-10 shrink-0">
             <div aria-hidden className="absolute inset-0 rounded-full bg-gradient-primary blur-lg opacity-50" />
             <img
@@ -106,7 +106,7 @@ export const AppLayout = () => {
           </div>
 
           <div className="leading-tight min-w-0">
-            <div className="font-semibold tracking-tight truncate text-sm sm:text-base shimmer-text">Study Bud AI</div>
+            <div className="font-semibold tracking-tight truncate text-sm sm:text-base">Study Bud AI</div>
             <div className="hidden sm:flex items-center gap-1.5">
               <span className="text-[9px] font-bold tracking-[0.2em] px-1.5 py-0.5 rounded-md bg-gradient-primary text-primary-foreground shadow-glow">RYJ</span>
               <span className="text-[10px] text-muted-foreground">by Rihaan Yeswant Jain</span>
@@ -155,9 +155,9 @@ export const AppLayout = () => {
                     end={t.end}
                     data-tour-tab={t.to}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group relative text-white ${
+                      `flex items-center gap-3 px-3 py-2 rounded-xl transition group relative text-white ${
                         isActive
-                          ? "bg-gradient-primary shadow-glow ring-1 ring-white/30 font-semibold aurora-ring"
+                          ? "bg-gradient-primary shadow-glow ring-1 ring-white/30 font-semibold"
                           : "hover:bg-gradient-to-r hover:from-primary/30 hover:to-accent/30 hover:ring-1 hover:ring-primary/40"
                       }`
                     }
@@ -174,7 +174,7 @@ export const AppLayout = () => {
           </div>
         </nav>
 
-        <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 pb-32 md:pb-8 max-w-6xl mx-auto w-full min-w-0">
+        <main className="flex-1 px-3 sm:px-6 py-4 sm:py-6 pb-32 md:pb-8 max-w-6xl mx-auto w-full animate-fade-in">
           <Outlet />
         </main>
       </div>
@@ -201,7 +201,7 @@ export const AppLayout = () => {
                 to={t.to}
                 end={t.end}
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] text-white transition-all duration-200 ${
+                  `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] text-white ${
                     isActive ? "bg-primary/25 font-semibold ring-1 ring-primary/40" : "text-white/85"
                   }`
                 }

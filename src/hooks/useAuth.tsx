@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { authEmailFor, loginKeyFrom } from "@/lib/authName";
-import { rememberAccount } from "@/lib/savedAccounts";
 
 type Result = { error: string | null };
 
@@ -23,40 +22,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let active = true;
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (!active) return;
       setSession(s);
       setUser(s?.user ?? null);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
-
-    // Session hydration is normally instant because it reads local storage.
-    // Never let a browser storage lock or a slow network leave the app blank.
-    const fallback = window.setTimeout(() => {
-      if (active) setLoading(false);
-    }, 1500);
-
-    supabase.auth.getSession()
-      .then(({ data }) => {
-        if (!active) return;
-        setSession(data.session);
-        setUser(data.session?.user ?? null);
-      })
-      .catch(() => {
-        // The auth listener can still recover if the initial read fails.
-      })
-      .finally(() => {
-        if (!active) return;
-        window.clearTimeout(fallback);
-        setLoading(false);
-      });
-
-    return () => {
-      active = false;
-      window.clearTimeout(fallback);
-      sub.subscription.unsubscribe();
-    };
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   const signUpWithName: Ctx["signUpWithName"] = async (first, last, password, recoveryEmail) => {
@@ -92,7 +67,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       if (e2) return { error: e2.message };
     }
-    rememberAccount(first, last);
     return { error: null };
   };
 
@@ -108,7 +82,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return { error: error.message };
     }
-    rememberAccount(first, last);
     return { error: null };
   };
 
