@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { markTabVisited } from "@/lib/badges";
 import { runDueDateNotifier } from "@/lib/notifications";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { prefetchRoute } from "@/lib/routePrefetch";
 
 const TAB_HINTS: Record<string, string> = {
   "/app": "Your dashboard — quick stats, today's tasks, and shortcuts.",
@@ -154,6 +155,8 @@ export const AppLayout = () => {
                     to={t.to}
                     end={t.end}
                     data-tour-tab={t.to}
+                    onMouseEnter={() => prefetchRoute(t.to)}
+                    onFocus={() => prefetchRoute(t.to)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-3 py-2 rounded-xl transition group relative text-white ${
                         isActive
@@ -200,6 +203,7 @@ export const AppLayout = () => {
                 key={t.to}
                 to={t.to}
                 end={t.end}
+                onTouchStart={() => prefetchRoute(t.to)}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-md text-[9px] leading-none min-w-[52px] text-white ${
                     isActive ? "bg-primary/25 font-semibold ring-1 ring-primary/40" : "text-white/85"
