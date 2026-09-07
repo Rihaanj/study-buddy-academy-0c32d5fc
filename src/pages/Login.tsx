@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Link, useNavigate } from "react-router-dom";
+import { Navigate, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Starfield } from "@/components/Starfield";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,9 @@ const features = [
 export default function Login() {
   const { signInWithName, signUpWithName, user, loading } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signup");
+  const [params] = useSearchParams();
+  const initialMode = params.get("mode") === "signin" ? "signin" : "signup";
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(initialMode);
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [password, setPassword] = useState("");

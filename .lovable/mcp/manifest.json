@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "sdk_version": "2.0.2",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://ajxrrhvbyedaqvrwplds.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "study-buddy-ai",
+      "version": "0.1.0",
+      "title": "Study Buddy Ai"
+    },
+    "tools": [
+      {
+        "name": "get_my_progress",
+        "title": "Get my study progress",
+        "description": "Get the signed-in student's XP, level, streak and grade level.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_tasks",
+        "title": "List study tasks",
+        "description": "List the signed-in student's planner tasks, newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "only_open": {
+              "description": "When true, only return tasks that are not completed.",
+              "type": "boolean"
+            },
+            "limit": {
+              "description": "Maximum number of tasks to return (default 25).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_task",
+        "title": "Create a study task",
+        "description": "Add a new task to the signed-in student's planner.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "description": "What needs to be done."
+            },
+            "subject": {
+              "description": "Class or subject, e.g. Biology.",
+              "type": "string",
+              "minLength": 1
+            },
+            "due_date": {
+              "description": "Due date as an ISO date, e.g. 2026-09-15.",
+              "type": "string"
+            },
+            "difficulty": {
+              "description": "How hard the task is (default medium).",
+              "type": "string",
+              "enum": [
+                "easy",
+                "medium",
+                "hard"
+              ]
+            }
+          },
+          "required": [
+            "title"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "complete_task",
+        "title": "Complete a study task",
+        "description": "Mark one of the signed-in student's planner tasks as completed.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "task_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "The id of the task to complete."
+            }
+          },
+          "required": [
+            "task_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_lessons",
+        "title": "List saved lessons",
+        "description": "List lessons the signed-in student saved in their notebook, newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "search": {
+              "description": "Filter lessons whose topic contains this text.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Maximum lessons to return (default 15).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
