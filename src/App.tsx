@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
@@ -9,33 +9,41 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { FocusProvider } from "@/hooks/useFocus";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
+import { loaders, warmAllRoutes } from "@/lib/routePrefetch";
 
-const AppLayout = lazy(() => import("@/components/AppLayout").then((m) => ({ default: m.AppLayout })));
-const Home = lazy(() => import("@/pages/Home"));
-const Planner = lazy(() => import("@/pages/Planner"));
-const Focus = lazy(() => import("@/pages/Focus"));
-const Chat = lazy(() => import("@/pages/Chat"));
-const AIHub = lazy(() => import("@/pages/AIHub"));
-const CalendarPage = lazy(() => import("@/pages/Calendar"));
-const Packs = lazy(() => import("@/pages/Packs"));
-const Buffs = lazy(() => import("@/pages/Buffs"));
-const Friends = lazy(() => import("@/pages/Friends"));
-const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
-const Reviews = lazy(() => import("@/pages/Reviews"));
-const CheatReports = lazy(() => import("@/pages/CheatReports"));
-const Profile = lazy(() => import("@/pages/Profile"));
-const Help = lazy(() => import("@/pages/Help"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
+const AppLayout = lazy(() => loaders.layout().then((m) => ({ default: m.AppLayout })));
+const Home = lazy(loaders.home);
+const Planner = lazy(loaders.planner);
+const Focus = lazy(loaders.focus);
+const Chat = lazy(loaders.chat);
+const AIHub = lazy(loaders.ai);
+const CalendarPage = lazy(loaders.calendar);
+const Packs = lazy(loaders.packs);
+const Buffs = lazy(loaders.buffs);
+const Friends = lazy(loaders.friends);
+const Leaderboard = lazy(loaders.leaderboard);
+const Reviews = lazy(loaders.reviews);
+const CheatReports = lazy(loaders.cheats);
+const Profile = lazy(loaders.profile);
+const Help = lazy(loaders.help);
+const NotFound = lazy(loaders.notFound);
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 60_000, refetchOnWindowFocus: false, retry: 1 } },
+});
 
-const Fallback = () => (
-  <div className="min-h-[40vh] grid place-items-center text-muted-foreground text-sm">Loading...</div>
-);
+const Fallback = () => <div className="min-h-[30vh]" aria-hidden />;
+
+const Warmer = () => {
+  useEffect(() => {
+    warmAllRoutes();
+  }, []);
+  return null;
+};
 
 const Protected = () => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="min-h-screen" aria-hidden />;
   if (!user) return <Navigate to="/login" replace />;
   return <AppLayout />;
 };
@@ -48,6 +56,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <FocusProvider>
+            <Warmer />
             <Suspense fallback={<Fallback />}>
               <Routes>
                 <Route path="/" element={<Landing />} />

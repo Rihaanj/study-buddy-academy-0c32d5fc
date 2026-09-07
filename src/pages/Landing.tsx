@@ -106,7 +106,7 @@ export default function Landing() {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" className="text-sm">
-            <Link to="/login">Sign in</Link>
+            <Link to="/login?mode=signin">Sign in</Link>
           </Button>
           <Button asChild className="rounded-full bg-gradient-primary text-primary-foreground shadow-glow h-10 px-5 text-sm font-semibold">
             <Link to={user ? "/app" : "/login"}>Open app</Link>
@@ -145,7 +145,7 @@ export default function Landing() {
                 </span>
               </Link>
             </Button>
-            <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline">
+            <Link to="/login?mode=signup" className="text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline">
               Create a free account
             </Link>
           </div>
